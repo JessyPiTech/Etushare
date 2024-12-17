@@ -235,7 +235,7 @@ cd Etushare
 
 ## 👨‍💻 **Contributeurs**
 - **[JessyPiTech]** - Développeur Principal.
-- **[JessyPiTech]** - Développeur Principal.
+- **[DamienGiarmo]** - Développeur Principal.
 
 ---
 
