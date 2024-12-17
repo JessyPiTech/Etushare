@@ -1,6 +1,3 @@
-Voici un modèle structuré pour ton fichier **README.md** que tu pourras inclure dans ton projet. Il présente clairement les fonctionnalités, technologies utilisées et le contexte du projet.
-
----
 
 #  **Projet Etushare: Application de Gestion d'Échanges de Services entre Étudiants**
 
