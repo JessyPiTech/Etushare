@@ -210,6 +210,7 @@ Etushare/
 1. **Serveur Local** : PHP (>= 7.x), Apache ou Nginx.
 2. **Base de Données** : MySQL ou MariaDB.
 
+
 ---
 
 ## 🚀 **Instructions d'Installation**
@@ -219,8 +220,10 @@ Etushare/
 git clone https://github.com/JessyPiTech/Etushare.git
 cd Etushare
 ```
-
-### **2. Configuration Backend**
+### **2.Administrateur BDD** 
+- Creation d'un administrateur dans la bdd
+- Remplacement des informations des credentials
+### **3. Configuration Backend**
 - Assurez-vous de configurer les fichiers `.env` dans chaque microservice avec vos informations de base de données.
 
 
