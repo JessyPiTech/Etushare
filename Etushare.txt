@@ -1,0 +1,35 @@
+histoique d'action 
+
+installation de wamp
+
+npm install -g browser-sync
+
+cd …
+
+
+browser-sync start --proxy "localhost" --files "**/*.php, **/*.css, **/*.js"
+
+puis recuper le lien
+
+
+***************
+
+utilitaire pour dev
+
+cd..
+cd..
+cd .\wamp64\www
+browser-sync start --proxy "localhost/etushare" --files "**/*.php, **/*.css, **/*.js"
+
+
+ensuite  tu recuper le lien external tu copie et sa met ta page a jour
+***************
+
+
+Not finish :
+
+1-Notif
+2-transfert 
+3-chat
+4-recherche
+5-real-time notifications

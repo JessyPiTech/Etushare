@@ -1,0 +1,54 @@
+<header>
+    <div>
+        <a href="./"><img id="logo" src="./static/asset/logo_etushare-removebg-preview.png" alt=""></a>
+        <div>
+            
+            <div class="shearch-bar">
+                <input type="text" placeholder="Search..." class="shearch-input" />
+                <ion-icon style="color: var(--black);" name="search-outline" onclick="toggleSearch()"></ion-icon>
+            </div>
+            <mini-header>
+                <a href="create-annonce.php"  class="special flex-align-center" >
+                    <ion-icon name="add-outline"></ion-icon>
+                    <h3>Ajouter une annonce</h3>
+                </a>
+                <a href="Favoris.php" class="section  flex-complete">
+                    <ion-icon name="heart-outline"></ion-icon>
+                    <p>Favoris</p>
+                </a>
+                
+                <a href="Chat.php" class="section  flex-complete">
+                    <ion-icon name="chatbox-outline"></ion-icon>
+                    <p>Chat</p>
+                </a>
+                <a href="user-detail.php?user_id=<?php echo $_SESSION['user_id']?>" class="section  flex-complete">
+                    <ion-icon name="person-outline"></ion-icon>
+                    <p>Profil</p>
+                </a>
+            </mini-header>  
+        </div>
+    </div>
+</header>
+<script>
+    function toggleSearch() {
+        const searchBar = document.querySelector('.shearch-bar');
+        const input = document.querySelector('.shearch-input');
+        const logo = document.getElementById('logo');
+        if (!searchBar.classList.contains('active')) {
+            searchBar.classList.add('active');
+            input.focus();
+            logo.src = "./static/asset/logo_mini_edushare-removebg-preview.png";
+            document.addEventListener('click', handleOutsideClick);
+        }
+    }
+
+    function handleOutsideClick(event) {
+        const searchBar = document.querySelector('.shearch-bar');
+        const logo = document.getElementById('logo');
+        if (!searchBar.contains(event.target)) {
+            searchBar.classList.remove('active');
+            logo.src = "./static/asset/logo_etushare-removebg-preview.png";
+            document.removeEventListener('click', handleOutsideClick);
+        }
+    }
+</script>
