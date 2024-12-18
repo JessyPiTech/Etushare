@@ -6,9 +6,16 @@ class Participant extends Objet {
         parent::__construct($conn, $id);
     }
 
+    public function sendErrorResponse($code, $message) {
+        http_response_code($code);
+        echo json_encode([
+            'success' => false,
+            'message' => $message
+        ]);
+    }
+
     public function create($input) {
         try {
-            // Commencez par récupérer l'ID de l'utilisateur qui a créé l'annonce
             $query = "SELECT user_id FROM annonce WHERE annonce_id = ?";
             $stmt = $this->conn->prepare($query);
             $stmt->bind_param('i', $input['annonce_id']);
@@ -16,7 +23,6 @@ class Participant extends Objet {
             $result = $stmt->get_result();
             $annonce_owner = $result->fetch_assoc()['user_id'];
     
-            // Insérez la participation avec un statut initial
             $query = "INSERT INTO annonce_participant (user_id, annonce_id, annonce_participant_status, annonce_participant_notif) 
                       VALUES (?, ?, 'pending', 1)";
             $stmt = $this->conn->prepare($query);
@@ -37,23 +43,21 @@ class Participant extends Objet {
                 ]);
                 return true;
             } else {
-                header('Content-Type: application/json');
-                http_response_code(500);
-                echo json_encode([
-                    'success' => false, 
-                    'message' => "Échec de l'ajout de la participation: " . $stmt->error
-                ]);
+                $this->sendErrorResponse(500, "Échec de l'ajout de la participation: " . $stmt->error);
                 return false;
             }
         } catch (Exception $e) {
-            header('Content-Type: application/json');
-            http_response_code(500);
-            echo json_encode([
-                'success' => false, 
-                'message' => "Erreur : " . $e->getMessage()
-            ]);
+            $this->sendErrorResponse(500, "Erreur : " . $e->getMessage());
             return false;
         }
+    }
+
+    public function addParticipantWithNotification($sender_id, $annonce_id, $receiver_id) {
+        $createQuery = "INSERT INTO annonce_participant (user_id, annonce_id, annonce_participant_user_id_2, annonce_participant_status, annonce_participant_notif) VALUES (?, ?, ?, 'pending', 1)";
+        $stmt = $this->conn->prepare($createQuery);
+        $stmt->bind_param('iii', $sender_id, $annonce_id, $receiver_id);
+        $stmt->execute();
+        return $stmt->insert_id;
     }
 
     public function update($input) {
@@ -79,24 +83,15 @@ class Participant extends Objet {
                 ]);
                 return true;
             } else {
-                header('Content-Type: application/json');
-                http_response_code(500);
-                echo json_encode([
-                    'success' => false, 
-                    'message' => "Échec de la mise à jour de la participation: " . $stmt->error
-                ]);
+                $this->sendErrorResponse(500, "Échec de la mise à jour de la participation: " . $stmt->error);
                 return false;
             }
         } catch (Exception $e) {
-            header('Content-Type: application/json');
-            http_response_code(500);
-            echo json_encode([
-                'success' => false, 
-                'message' => "Erreur : " . $e->getMessage()
-            ]);
+            $this->sendErrorResponse(500, "Erreur : " . $e->getMessage());
             return false;
         }
     }
+
     public function countParticipantsForAnnonce($annonce_id) {
         $query = "SELECT COUNT(*) as participant_count FROM annonce_participant WHERE annonce_id = ?";
         $stmt = $this->conn->prepare($query);

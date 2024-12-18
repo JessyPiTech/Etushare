@@ -123,6 +123,12 @@ class Objet {
             }
         }
     }
+    public function sendErrorResponse($code, $message) {
+        http_response_code($code);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => $message]);
+        exit;
+    }
 }
 
 ?>

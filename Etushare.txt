@@ -19,7 +19,7 @@ utilitaire pour dev
 cd..
 cd..
 cd .\wamp64\www
-browser-sync start --proxy "localhost/etushare" --files "**/*.php, **/*.css, **/*.js"
+browser-sync start --proxy "localhost/important/etushare" --files "**/*.php, **/*.css, **/*.js"
 
 
 ensuite  tu recuper le lien external tu copie et sa met ta page a jour
@@ -33,3 +33,87 @@ Not finish :
 3-chat
 4-recherche
 5-real-time notifications
+
+
+
+a metre en place  
+
+// Fonction utilitaire pour exécuter et retourner les requêtes
+a metre dans objet
+private function fetchData($conn, $query, $user_id) {
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param('i', $user_id);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+// Fonction utilitaire pour exécuter les requêtes et retourner une réponse JSON
+private function executeAndRespond($stmt, $successMessage) {
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true, 'message' => $successMessage]);
+    } else {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Erreur dans le traitement']);
+    }
+}
+
+
+
+exemple
+
+
+ private function fetchParticipants($conn, $user_id) {
+        $query = "SELECT ap.annonce_participant_id, u.user_name as sender_name, a.annonce_title, 
+                         a.annonce_id, ap.user_id as participant_id 
+                  FROM annonce_participant ap
+                  JOIN user u ON u.user_id = ap.user_id
+                  JOIN annonce a ON a.annonce_id = ap.annonce_id
+                  WHERE a.user_id = ? AND ap.annonce_participant_notif = 1";
+        return $this->fetchData($conn, $query, $user_id);
+    }
+
+
+
+
+
+
+    function handleParticipantNotification($conn, $input) {
+        $action = $input['notification_action'];
+        $participantId = $input['notification_id'];
+        $annonce_id = $input['annonce_id'];
+        $sender_id = $input['user_id'];
+        $participant_id = $input['participant_id'];
+
+        if (!in_array($action, ['accept', 'reject'])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Action invalide']);
+            return;
+        }
+
+        if ($action === 'accept') {
+            $amount = $this->fetchAnnonceValue($conn, $annonce_id);
+
+            $transfere = new Transfere($conn);
+            $transfere->create($conn, $annonce_id, $sender_id, $participant_id, $amount);
+
+            $status = 'confirm';
+        } else {
+            $status = 'rejected';
+        }
+
+        $query = "UPDATE annonce_participant 
+                  SET annonce_participant_status = ?, annonce_participant_notif = ? 
+                  WHERE annonce_participant_id = ?";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param('sii', $status, self::NOTIF_READ, $participantId);
+
+        $this->executeAndRespond($stmt, 'Participant request processed successfully');
+    }
+
+
+
+
+
+    a metre en place  
+
+
+    gestion des eurreur

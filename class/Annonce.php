@@ -5,13 +5,13 @@ class Annonce extends Objet {
     public function __construct($conn, $id = null) {
         parent::__construct($conn, $id);
     }
+
     public function create($input) {
         $this->conn->begin_transaction();
     
         try {
             $query = "INSERT INTO annonce (user_id, annonce_participant_number, annonce_title, annonce_description, annonce_value, category_id)
                       VALUES (?, ?, ?, ?, ?, ?)";
-            
             $stmt = $this->conn->prepare($query);
     
             $user_id = $input['user_id'];
@@ -24,7 +24,8 @@ class Annonce extends Objet {
             $stmt->bind_param('iissii', $user_id, $annonce_participant_number, $annonce_title, $annonce_description, $annonce_value, $category_id);
     
             if (!$stmt->execute()) {
-                throw new Exception("Erreur lors de la création de l'annonce");
+                sendErrorResponse(500, "Erreur lors de la création de l'annonce");
+                return false;
             }
     
             $annonce_id = $this->conn->insert_id;
@@ -37,13 +38,13 @@ class Annonce extends Objet {
                     $image_stmt->bind_param('is', $annonce_id, $image_path);
                     
                     if (!$image_stmt->execute()) {
-                        throw new Exception("Erreur lors de l'enregistrement de l'image");
+                        $this->sendErrorResponse(500, "Erreur lors de l'enregistrement de l'image");
+                        return false;
                     }
                 }
             }
 
             $this->conn->commit();
-    
             http_response_code(201);
             echo json_encode([
                 'success' => true, 
@@ -54,15 +55,11 @@ class Annonce extends Objet {
     
         } catch (Exception $e) {
             $this->conn->rollback();
-            
-            http_response_code(500);
-            echo json_encode([
-                'success' => false, 
-                'error' => $e->getMessage()
-            ]);
+            $this->sendErrorResponse(500, $e->getMessage());
             return false;
         }
     }
+
     public function update($input) {
         $this->conn->begin_transaction();
     
@@ -75,7 +72,6 @@ class Annonce extends Objet {
                           annonce_value = ?, 
                           category_id = ?
                       WHERE annonce_id = ?";
-            
             $stmt = $this->conn->prepare($query);
     
             $user_id = $input['user_id'];
@@ -89,7 +85,8 @@ class Annonce extends Objet {
             $stmt->bind_param('issiii', $annonce_participant_number, $annonce_title, $annonce_description, $annonce_value, $category_id, $annonce_id);
     
             if (!$stmt->execute()) {
-                throw new Exception("Erreur lors de la mise à jour de l'annonce");
+                $this->sendErrorResponse(500, "Erreur lors de la mise à jour de l'annonce");
+                return false;
             }
     
             if (isset($input['files']['annonce_image'])) {
@@ -110,7 +107,8 @@ class Annonce extends Objet {
                         $update_stmt->bind_param('si', $image_path, $annonce_id);
     
                         if (!$update_stmt->execute()) {
-                            throw new Exception("Erreur lors de la mise à jour de l'image");
+                            $this->sendErrorResponse(500, "Erreur lors de la mise à jour de l'image");
+                            return false;
                         }
                     } else {
                         $image_insert_query = "INSERT INTO annonce_image (annonce_id, image_lien) VALUES (?, ?)";
@@ -118,14 +116,14 @@ class Annonce extends Objet {
                         $insert_stmt->bind_param('is', $annonce_id, $image_path);
     
                         if (!$insert_stmt->execute()) {
-                            throw new Exception("Erreur lors de l'ajout de l'image");
+                            $this->sendErrorResponse(500, "Erreur lors de l'ajout de l'image");
+                            return false;
                         }
                     }
                 }
             }
     
             $this->conn->commit();
-
             http_response_code(200);
             echo json_encode([
                 'success' => true, 
@@ -136,24 +134,18 @@ class Annonce extends Objet {
     
         } catch (Exception $e) {
             $this->conn->rollback();
-    
-            http_response_code(500);
-            echo json_encode([
-                'success' => false, 
-                'error' => $e->getMessage()
-            ]);
+            $this->sendErrorResponse(500, $e->getMessage());
             return false;
         }
     }
+
     function getAnnonces($conn, $type, $input = null, $limit = 9, $offset = 0) { 
         try {
+            $limit = $input['limit'] ?? $limit;  
+            $offset = $input['offset'] ?? $offset;
+            $userId = $input['user_id'];
+            $categoryId = $input['category_id'] ?? null;
 
-                $limit = $input['limit'] ?? $limit;  
-                $offset = $input['offset'] ?? $offset;
-                $userId = $input['user_id'] ;
-                $categoryId = $input['category_id'] ?? null;
-            
-    
             $query = "";
             $params = [];
             $types = '';
@@ -161,7 +153,8 @@ class Annonce extends Objet {
             switch ($type) {
                 case "all":
                     if (is_null($userId)) {
-                        throw new Exception("User ID is required for 'all' type");
+                        $this->sendErrorResponse(400, "User ID is required for 'all' type");
+                        return false;
                     }
                     $query = "
                         SELECT 
@@ -176,17 +169,17 @@ class Annonce extends Objet {
                         LEFT JOIN annonce_image ai ON a.annonce_id = ai.annonce_id
                         LEFT JOIN annonce_like al ON a.annonce_id = al.annonce_id AND al.user_id = ?
                         LEFT JOIN annonce_participant ap ON a.annonce_id = ap.annonce_id AND ap.user_id = ?
-                        LEFT JOIN category c ON a.category_id = c.category_id  -- Jointure avec la table category
+                        LEFT JOIN category c ON a.category_id = c.category_id
                         GROUP BY a.annonce_id, ai.image_name, ai.image_lien, c.category_name
                         ORDER BY a.annonce_id DESC
                         LIMIT ? OFFSET ?";
                     $params = [$userId, $userId, $limit, $offset];
                     $types = 'iiii';
                     break;
-            
                 case "category":
                     if (is_null($userId) || is_null($categoryId)) {
-                        throw new Exception("User ID and Category ID are required for 'category' type");
+                        $this->sendErrorResponse(400, "User ID and Category ID are required for 'category' type");
+                        return false;
                     }
                     $query = "
                         SELECT 
@@ -198,7 +191,6 @@ class Annonce extends Objet {
                             COUNT(DISTINCT al.annonce_like_id) as like_count,
                             COUNT(DISTINCT ap.annonce_participant_id) as participant_count
                         FROM annonce a
-                        
                         LEFT JOIN annonce_image ai ON a.annonce_id = ai.annonce_id
                         LEFT JOIN annonce_like al ON a.annonce_id = al.annonce_id AND al.user_id = ?
                         LEFT JOIN annonce_participant ap ON a.annonce_id = ap.annonce_id AND ap.user_id = ?
@@ -210,10 +202,10 @@ class Annonce extends Objet {
                     $params = [$userId, $userId, $categoryId, $limit, $offset];
                     $types = 'iiiii';
                     break;
-            
                 case "like":
                     if (is_null($userId)) {
-                        throw new Exception("User ID is required for 'like' type");
+                        $this->sendErrorResponse(400, "User ID is required for 'like' type");
+                        return false;
                     }
                     $query = "
                         SELECT 
@@ -229,7 +221,7 @@ class Annonce extends Objet {
                         LEFT JOIN annonce_image ai ON a.annonce_id = ai.annonce_id
                         LEFT JOIN annonce_like al2 ON a.annonce_id = al2.annonce_id AND al2.user_id = ?
                         LEFT JOIN annonce_participant ap ON a.annonce_id = ap.annonce_id AND ap.user_id = ?
-                        LEFT JOIN category c ON a.category_id = c.category_id  -- Jointure avec la table category
+                        LEFT JOIN category c ON a.category_id = c.category_id
                         WHERE al.user_id = ? 
                         GROUP BY a.annonce_id, ai.image_name, ai.image_lien
                         ORDER BY a.annonce_id DESC 
@@ -237,10 +229,10 @@ class Annonce extends Objet {
                     $params = [$userId, $userId, $userId, $limit, $offset];
                     $types = 'iiiii';
                     break;
-            
                 case "participant":
                     if (is_null($userId)) {
-                        throw new Exception("User ID is required for 'participant' type");
+                        $this->sendErrorResponse(400, "User ID is required for 'participant' type");
+                        return false;
                     }
                     $query = "
                         SELECT 
@@ -256,7 +248,7 @@ class Annonce extends Objet {
                         LEFT JOIN annonce_image ai ON a.annonce_id = ai.annonce_id
                         LEFT JOIN annonce_like al ON a.annonce_id = al.annonce_id AND al.user_id = ?
                         LEFT JOIN annonce_participant ap2 ON a.annonce_id = ap2.annonce_id AND ap2.user_id = ?
-                        LEFT JOIN category c ON a.category_id = c.category_id  -- Jointure avec la table category
+                        LEFT JOIN category c ON a.category_id = c.category_id 
                         WHERE ap.user_id = ? 
                         GROUP BY a.annonce_id, ai.image_name, ai.image_lien
                         ORDER BY a.annonce_id DESC 
@@ -265,13 +257,15 @@ class Annonce extends Objet {
                     $types = 'iiiii';
                     break;            
                 default:
-                    throw new Exception("Invalid load type");
+                    $this->sendErrorResponse(400, "Invalid load type");
+                    return false;
             }
-    
+
             $stmt = $conn->prepare($query);
             $stmt->bind_param($types, ...$params);
             if (!$stmt->execute()) {
-                throw new Exception("Error during query execution: " . $stmt->error);
+                $this->sendErrorResponse(500, "Erreur lors de l'exécution de la requête : " . $stmt->error);
+                return false;
             }
     
             $result = $stmt->get_result();
@@ -279,7 +273,6 @@ class Annonce extends Objet {
             while ($row = $result->fetch_assoc()) {
                 $row['image_name'] = $row['image_name'] ?? null;
                 $row['image_lien'] = $row['image_lien'] ?? null;
-                
                 $row['is_liked'] = (bool)($row['is_liked'] ?? false);
                 $row['is_participant'] = (bool)($row['is_participant'] ?? false);
                 $row['like_count'] = (int)$row['like_count'];
@@ -290,16 +283,19 @@ class Annonce extends Objet {
     
             return $annonce;
         } catch (Exception $e) {
-            throw $e;
+            $this->sendErrorResponse(500, $e->getMessage());
+            return false;
         }
     }
+
     public function getUserAnnonce($conn, $userId, $input, $limit = 10, $offset = 0) {
         try {
             $limit = $input['limit'] ?? $limit;  
             $offset = $input['offset'] ?? $offset;
 
             if (is_null($userId)) {
-                throw new Exception("L'ID utilisateur est requis.");
+                $this->sendErrorResponse(400, "L'ID utilisateur est requis.");
+                return false;
             }
 
             $query = "
@@ -324,31 +320,32 @@ class Annonce extends Objet {
 
             $stmt = $conn->prepare($query);
             $stmt->bind_param('iiiii', $userId, $userId, $userId, $limit, $offset);
-    
+
             if (!$stmt->execute()) {
-                throw new Exception("Erreur lors de l'exécution de la requête : " . $stmt->error);
+                $this->sendErrorResponse(500, "Erreur lors de l'exécution de la requête : " . $stmt->error);
+                return false;
             }
 
             $result = $stmt->get_result();
-            $annonces = [];
+            $annonce = [];
             while ($row = $result->fetch_assoc()) {
                 $row['image_name'] = $row['image_name'] ?? null;
                 $row['image_lien'] = $row['image_lien'] ?? null;
-                $row['category_name'] = $row['category_name'] ?? null;
-                $row['is_liked'] = (bool)($row['is_liked'] ?? false);
-                $row['is_participant'] = (bool)($row['is_participant'] ?? false);
+                $row['is_liked'] = (bool)$row['is_liked'];
+                $row['is_participant'] = (bool)$row['is_participant'];
                 $row['like_count'] = (int)$row['like_count'];
                 $row['participant_count'] = (int)$row['participant_count'];
-    
-                $annonces[] = $row;
+                $row['category_name'] = $row['category_name'] ?? null;
+                $annonce[] = $row;
             }
-    
-            return $annonces;
+
+            return $annonce;
+
         } catch (Exception $e) {
-            throw new Exception("Erreur dans getUserAnnonce : " . $e->getMessage());
+            $this->sendErrorResponse(500, $e->getMessage());
+            return false;
         }
     }
-
     public function getAnnonceById($conn, $annonce_id) {
         $query = "SELECT a.*, u.user_name, u.user_image_profil, c.category_name, 
                   (SELECT COUNT(*) FROM annonce_like al WHERE al.annonce_id = a.annonce_id) as like_count,
@@ -366,10 +363,4 @@ class Annonce extends Objet {
         $result = $stmt->get_result();
         return $result->fetch_assoc();
     }
-
-    
-    
-   
-
 }
-?>

@@ -27,33 +27,18 @@ class Like extends Objet {
                 ]);
                 return true;
             } else {
-                header('Content-Type: application/json');
-                http_response_code(500);
-                echo json_encode([
-                    'success' => false, 
-                    'message' => "Échec de l'ajout du like: " . $stmt->error
-                ]);
+                sendErrorResponse(500, "Échec de l'ajout du like: " . $stmt->error);
+                
                 return false;
             }
         } catch (Exception $e) {
-            header('Content-Type: application/json');
-            http_response_code(500);
-            echo json_encode([
-                'success' => false, 
-                'message' => "Erreur : " . $e->getMessage()
-            ]);
+            sendErrorResponse(500, $e->getMessage());
             return false;
         }
     }
 
     public function update($input) {
-        // Pour les likes, il n'y a généralement pas de mise à jour
-        header('Content-Type: application/json');
-        http_response_code(400);
-        echo json_encode([
-            'success' => false, 
-            'message' => "Mise à jour de like non supportée"
-        ]);
+        sendErrorResponse(500, "Mise à jour de like non supportée");
         return false;
     }
     public function countLikesForAnnonce($annonce_id) {

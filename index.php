@@ -122,7 +122,7 @@ require_once "./component/head.php";
             notifItem.classList.add('notification-item');
 
             let notifText = '';
-            switch(notif.type) {
+            switch (notif.type) {
                 case 'friend_request':
                     notifText = `New friend request from ${notif.sender_name}`;
                     break;
@@ -130,7 +130,7 @@ require_once "./component/head.php";
                     notifText = `${notif.sender_name} liked your announcement`;
                     break;
                 case 'participant':
-                    notifText = `${notif.sender_name} wants to participate in your announcement`;
+                    notifText = `${notif.participant_name} wants to participate in your announcement`;
                     break;
                 case 'transfer':
                     notifText = `New transfer notification from ${notif.sender_name}`;
@@ -142,8 +142,8 @@ require_once "./component/head.php";
             notifItem.innerHTML = `
                 <span>${notifText}</span>
                 <div class="notification-actions">
-                    <button onclick="handleNotificationAction(${notif.id}, '${notif.type}', 'accept',${user_id})">Accept</button>
-                    <button onclick="handleNotificationAction(${notif.id}, '${notif.type}', 'reject',${user_id})">Reject</button>
+                    <button onclick="handleNotificationAction(${notif.id}, '${notif.type}', 'accept', ${user_id}, ${notif.annonce_id || null}, ${notif.participant_id || null})">Accept</button>
+                    <button onclick="handleNotificationAction(${notif.id}, '${notif.type}', 'reject', ${user_id}, ${notif.annonce_id || null}, ${notif.participant_id || null})">Reject</button>
                 </div>
             `;
 
@@ -153,7 +153,7 @@ require_once "./component/head.php";
         notifContainer.appendChild(notifList);
     }
 
-    function handleNotificationAction(id, type, action, user_id) {
+    function handleNotificationAction(id, type, action, user_id, annonce_id = null, participant_id = null) {
         const requestData = {
             action: "Notification_Handle",
             notification_id: id,
@@ -162,10 +162,17 @@ require_once "./component/head.php";
             user_id: user_id
         };
 
+        if (annonce_id) {
+            requestData.annonce_id = annonce_id;
+        }
+        if (participant_id) {
+            requestData.participant_id = participant_id;
+        }
+
         postData(apiUrl, requestData)
             .then(response => {
                 if (response.success) {
-                    reloadNotifications(user_id); // Recharge uniquement les notifications
+                    reloadNotifications(user_id);
                     alert(`${type} ${action}ed successfully`);
                 } else {
                     console.error('Failed to process notification', response);
@@ -179,7 +186,7 @@ require_once "./component/head.php";
     function reloadNotifications(user_id) {
         const requestData = {
             action: "Dashboard_Load",
-            category_id: 2,  
+            category_id: 2,
             user_id: user_id
         };
 
