@@ -357,7 +357,7 @@ function renderForm($id, $title, $fields, $submitText) {
                 fields: [
                     { id: "createAnnonceImageAnnonceId", key: "annonce_id" },
                     { id: "createAnnonceImageName", key: "image_name" },
-                    { id: "createAnnonceImageLink", key: "image_lien" }
+                    { id: "createAnnonceImageLink", key: "image_path" }
                 ]
             },
             "updateAnnonceImageForm": {
@@ -366,7 +366,7 @@ function renderForm($id, $title, $fields, $submitText) {
                     { id: "updateAnnonceImageId", key: "image_id" },
                     { id: "updateAnnonceImageAnnonceId", key: "annonce_id" },
                     { id: "updateAnnonceImageName", key: "image_name" },
-                    { id: "updateAnnonceImageLink", key: "image_lien" }
+                    { id: "updateAnnonceImageLink", key: "image_path" }
                 ]
             },
             "deleteAnnonceImageForm": {

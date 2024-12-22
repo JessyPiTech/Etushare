@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : mar. 17 déc. 2024 à 13:00
+-- Généré le : dim. 22 déc. 2024 à 22:10
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.2.18
 
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS `annonce` (
   `category_id` int NOT NULL,
   PRIMARY KEY (`annonce_id`),
   KEY `user_id` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Déchargement des données de la table `annonce`
@@ -48,7 +48,8 @@ CREATE TABLE IF NOT EXISTS `annonce` (
 INSERT INTO `annonce` (`annonce_id`, `user_id`, `annonce_participant_number`, `annonce_title`, `annonce_description`, `annonce_value`, `annonce_time`, `category_id`) VALUES
 (24, 8, 2, 'test1', 'sdsdsds', 115, '2024-12-16 00:29:56', 1),
 (26, 8, 2, 'test3', 'scouonvsdeded', 112, '2024-12-16 00:31:09', 1),
-(27, 9, 2, 'jeu', 'zdecw', 110, '2024-12-16 10:42:15', 1);
+(27, 9, 2, 'jeu', 'zdecw', 110, '2024-12-16 10:42:15', 1),
+(28, 11, 2, 'test6', 'mlp,kl', 110, '2024-12-17 22:19:12', 2);
 
 -- --------------------------------------------------------
 
@@ -81,19 +82,20 @@ CREATE TABLE IF NOT EXISTS `annonce_image` (
   `image_id` int NOT NULL AUTO_INCREMENT,
   `annonce_id` int NOT NULL,
   `image_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `image_lien` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `image_path` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   PRIMARY KEY (`image_id`),
   KEY `annonce_id` (`annonce_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Déchargement des données de la table `annonce_image`
 --
 
-INSERT INTO `annonce_image` (`image_id`, `annonce_id`, `image_name`, `image_lien`) VALUES
+INSERT INTO `annonce_image` (`image_id`, `annonce_id`, `image_name`, `image_path`) VALUES
 (1, 24, '', './upload/675f66747d81c.png'),
 (3, 26, '', './upload/6760cf4f9f9b8.png'),
-(4, 27, '', './upload/675ff5f76f687.png');
+(4, 27, '', './upload/675ff5f76f687.png'),
+(5, 28, '', './upload/6761ead03ed19.jpg');
 
 -- --------------------------------------------------------
 
@@ -110,7 +112,7 @@ CREATE TABLE IF NOT EXISTS `annonce_like` (
   PRIMARY KEY (`annonce_like_id`),
   KEY `annonce_id` (`annonce_id`,`user_id`),
   KEY `user_id` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=127 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=131 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Déchargement des données de la table `annonce_like`
@@ -119,7 +121,9 @@ CREATE TABLE IF NOT EXISTS `annonce_like` (
 INSERT INTO `annonce_like` (`annonce_like_id`, `annonce_id`, `user_id`, `annonce_like_notif`) VALUES
 (53, 26, 9, 0),
 (125, 27, 8, 0),
-(126, 27, 11, 0);
+(126, 27, 11, 0),
+(127, 26, 8, 0),
+(129, 24, 11, 0);
 
 -- --------------------------------------------------------
 
@@ -132,23 +136,20 @@ CREATE TABLE IF NOT EXISTS `annonce_participant` (
   `annonce_participant_id` int NOT NULL AUTO_INCREMENT,
   `annonce_id` int NOT NULL,
   `user_id` int NOT NULL,
-  `annonce_participant_status` int NOT NULL DEFAULT '0',
+  `annonce_participant_status` varchar(15) COLLATE utf8mb4_general_ci NOT NULL,
   `annonce_participant_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `annonce_participant_notif` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`annonce_participant_id`),
   KEY `annonce_id` (`annonce_id`,`user_id`),
   KEY `user_id` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=80 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Déchargement des données de la table `annonce_participant`
 --
 
 INSERT INTO `annonce_participant` (`annonce_participant_id`, `annonce_id`, `user_id`, `annonce_participant_status`, `annonce_participant_date`, `annonce_participant_notif`) VALUES
-(5, 26, 9, 0, '2024-12-16 10:36:38', 0),
-(73, 27, 11, 0, '2024-12-17 10:04:37', 0),
-(75, 24, 11, 0, '2024-12-17 10:24:12', 2),
-(79, 26, 11, 0, '2024-12-17 10:30:48', 2);
+(2, 28, 8, 'confirm', '2024-12-22 23:04:49', 2);
 
 -- --------------------------------------------------------
 
@@ -209,7 +210,15 @@ CREATE TABLE IF NOT EXISTS `transfere` (
   KEY `user_id_1` (`user_id_1`),
   KEY `user_id_2` (`user_id_2`),
   KEY `annonce_id` (`annonce_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Déchargement des données de la table `transfere`
+--
+
+INSERT INTO `transfere` (`transfer_id`, `user_id_1`, `user_id_2`, `annonce_id`, `transfere`, `transfer_time`, `transfer_notif`, `transfer_amount`, `transfer_status`) VALUES
+(1, 11, 8, 28, 1, '2024-12-22 13:05:42', 0, 110.00, 'approved'),
+(2, 11, 8, 28, 1, '2024-12-22 23:07:22', 0, 110.00, 'approved');
 
 -- --------------------------------------------------------
 
@@ -235,10 +244,10 @@ CREATE TABLE IF NOT EXISTS `user` (
 --
 
 INSERT INTO `user` (`user_id`, `user_name`, `user_etucoin`, `user_image_profil`, `user_mail`, `user_password`, `user_description_profil`, `user_date`) VALUES
-(8, 'jessy', 500, './upload/675f646c9ae2f.png', 'jessy@gmail', '$2y$10$wAXqwUptKUXTU/bWeeW26OgC8TH6lMv/isNstpdz9h1MorBonNs7O', 'a ammemdmededmemde', '2024-12-16 00:21:16'),
-(9, 'jessx', 500, './upload/675fea5a7e0c8.png', 'ded@gmzzfsdcl', '$2y$10$VoJhjQ9pisE/50G8krwGMeD3F8VWBNCNKGqiKYStQ/gmpR7sbEnje', '123665', '2024-12-16 09:52:42'),
+(8, 'jessy', 605, './upload/675f646c9ae2f.png', 'jessy@gmail', '$2y$10$wAXqwUptKUXTU/bWeeW26OgC8TH6lMv/isNstpdz9h1MorBonNs7O', 'a ammemdmededmemde', '2024-12-16 00:21:16'),
+(9, 'jessx', 280, './upload/675fea5a7e0c8.png', 'ded@gmzzfsdcl', '$2y$10$VoJhjQ9pisE/50G8krwGMeD3F8VWBNCNKGqiKYStQ/gmpR7sbEnje', '123665', '2024-12-16 09:52:42'),
 (10, 'dezde', 500, './upload/6760d33a748a5.png', 'ded@gmzzfsdcl', '$2y$10$FaGJ9VeqmhALeMYDeORrV.kvn2HeWWJbK4Rz273NNQMyS4XkUlyMW', 'ezdzdzd', '2024-12-17 02:26:18'),
-(11, 'jessy1', 500, './upload/6760d4cbe234e.png', 'ded@gmzzfsdcl', '$2y$10$Kr8f.pQ0O4m4q2BhgTJhN.EJYQNddGeauo4793iv8CtPGUMLxXkta', 'esdefs', '2024-12-17 02:33:00');
+(11, 'jessy1', 925, './upload/6760d4cbe234e.png', 'ded@gmzzfsdcl', '$2y$10$Kr8f.pQ0O4m4q2BhgTJhN.EJYQNddGeauo4793iv8CtPGUMLxXkta', 'esdefs', '2024-12-17 02:33:00');
 
 -- --------------------------------------------------------
 
@@ -253,7 +262,7 @@ CREATE TABLE IF NOT EXISTS `user_friend` (
   `user_id_2` int NOT NULL,
   `user_friend_icon` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `user_friend_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `user_friend_status` int NOT NULL DEFAULT '0',
+  `user_friend_status` varchar(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `user_friend_notif` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`user_friend_id`),
   KEY `user_id_1` (`user_id_1`,`user_id_2`),
@@ -265,11 +274,11 @@ CREATE TABLE IF NOT EXISTS `user_friend` (
 --
 
 INSERT INTO `user_friend` (`user_friend_id`, `user_id_1`, `user_id_2`, `user_friend_icon`, `user_friend_time`, `user_friend_status`, `user_friend_notif`) VALUES
-(5, 11, 9, '', '2024-12-17 02:45:41', 1, 2),
-(6, 8, 9, '', '2024-12-17 02:46:40', 1, 2),
-(7, 8, 9, '', '2024-12-17 02:46:45', 1, 2),
-(8, 8, 9, '', '2024-12-17 02:46:54', 1, 2),
-(9, 11, 8, '', '2024-12-17 02:48:12', 1, 2);
+(5, 11, 9, '', '2024-12-17 02:45:41', '1', 2),
+(6, 8, 9, '', '2024-12-17 02:46:40', '1', 2),
+(7, 8, 9, '', '2024-12-17 02:46:45', '1', 2),
+(8, 8, 9, '', '2024-12-17 02:46:54', '1', 2),
+(9, 11, 8, '', '2024-12-17 02:48:12', '1', 2);
 
 -- --------------------------------------------------------
 

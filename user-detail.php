@@ -57,7 +57,13 @@ if (!$user_id) die("Invalid user ID");
 
             const actionsDiv = document.getElementById('user-actions');
             actionsDiv.innerHTML = '';
-            if (friendStatus === 'not_friends' && '<?php echo $user_id; ?>' != user_id) {
+            if ('<?php echo $user_id; ?>' == user_id){
+                const monnieText = document.createElement('p');
+                monnieText.textContent = `your monny : ${user.user_etucoin} $`;
+                
+                
+                actionsDiv.appendChild(monnieText);
+            }else if (friendStatus === 'not_friends') {
                 const addFriendBtn = document.createElement('button');
                 addFriendBtn.textContent = 'Add Friend';
                 addFriendBtn.classList.add('btn', 'special');
@@ -104,7 +110,7 @@ if (!$user_id) die("Invalid user ID");
                     value.textContent = `Value: ${item.annonce_value || 'N/A'} €`;
 
                     const image = document.createElement('img');
-                    image.src = item.image_lien || defaultImage;
+                    image.src = item.image_path || defaultImage;
                     image.alt = item.annonce_title || 'Image not available';
                     image.classList.add('annonce-image');
 

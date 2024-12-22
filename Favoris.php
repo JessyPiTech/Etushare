@@ -175,7 +175,7 @@ miniHeader button.active {
                     category.classList.add('category-name');
 
                     const image = document.createElement('img');
-                    image.src = item.image_lien || defaultImage;
+                    image.src = item.image_path || defaultImage;
                     image.alt = item.image_name || 'Image not available';
                     image.classList.add('big-annonce-image');
 

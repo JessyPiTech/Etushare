@@ -75,7 +75,7 @@ error_reporting(E_ALL);
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                background: var(--back);
+                background: var(--orange);
                 max-width: 500px;
                 margin: 50px auto;
                 padding: 20px;

@@ -1,32 +1,15 @@
 <?php
 require_once __DIR__ . "/Objet.php";
 require_once __DIR__ . "/Transfere.php";
+require_once __DIR__ . "/User.php";
 
 class Notification extends Objet {
     public function __construct($conn, $id = null) {
         parent::__construct($conn, $id);
     }
-        
+
+
     
-    function handleFriendRequestNotification($conn, $input) {
-        $action = $input['notification_action'];
-        $friendRequestId = $input['notification_id'];
-    
-        if ($action === 'accept') {
-            $query = "UPDATE user_friend SET user_friend_status = 1, user_friend_notif = 2 WHERE user_friend_id = ?";
-        } else {
-            $query = "UPDATE user_friend SET user_friend_status = 2, user_friend_notif = 2 WHERE user_friend_id = ?";
-        }
-    
-        $stmt = $conn->prepare($query);
-        $stmt->bind_param('i', $friendRequestId);
-        
-        if ($stmt->execute()) {
-            echo json_encode(['success' => true]);
-        } else {
-            sendErrorResponse(500, 'Failed to process friend request');
-        }
-    }
 
     function handleLikeNotification($conn, $input) {
         $query = "UPDATE annonce_like SET annonce_like_notif = 0 WHERE annonce_like_id = ?";
@@ -41,49 +24,8 @@ class Notification extends Objet {
         }
     }
 
-    function handleParticipantNotification($conn, $input) {
-        $action = $input['notification_action'];
-        $participantId = $input['notification_id'];
-        $annonce_id = $input['annonce_id'];
-        $sender_id = $input['user_id'];
-        $participant_id = $input['participant_id'];
-        
-        $response = ['success' => false];
     
-        try {
-            if ($action === 'accept') {
-                $valueQuery = "SELECT annonce_value FROM annonce WHERE annonce_id = ?";
-                $valueStmt = $conn->prepare($valueQuery);
-                $valueStmt->bind_param('i', $annonce_id);
-                $valueStmt->execute();
-                $result = $valueStmt->get_result()->fetch_assoc();
-                $amount = $result['annonce_value'];
-    
-                $transfere = new Transfere($conn);
-                $transferResult = $transfere->createTransfer($conn, $annonce_id, $sender_id, $participant_id, $amount);
-    
-               
-                $query = "UPDATE annonce_participant SET annonce_participant_status = 'confirm', annonce_participant_notif = 2 WHERE annonce_participant_id = ?";
-            } else {
-                $query = "UPDATE annonce_participant SET annonce_participant_status = 'rejected', annonce_participant_notif = 2 WHERE annonce_participant_id = ?";
-                $transferResult = true;
-            }
-    
-            $stmt = $conn->prepare($query);
-            $stmt->bind_param('i', $participantId);
-    
-            if ($stmt->execute() && $transferResult) {
-                $response['success'] = true;
-            } else {
-                $response['error'] = 'Échec du traitement de la participation';
-            }
-        } catch (Exception $e) {
-            $response['error'] = $e->getMessage();
-        }
-    
-        echo json_encode($response);
-        exit;
-    }
+
     function fetchFriendRequests($conn, $user_id) {
         $query = "SELECT uf.user_friend_id, u.user_name as sender_name 
                 FROM user_friend uf 
@@ -130,7 +72,7 @@ class Notification extends Objet {
         foreach ($friendRequests as $row) {
             $notifications[] = [
                 'id' => $row['user_friend_id'],
-                'type' => 'friend_request',
+                'type' => 'Friend_Respond',
                 'sender_name' => $row['sender_name']
             ];
         }
@@ -149,7 +91,7 @@ class Notification extends Objet {
         foreach ($participants as $row) {
             $notifications[] = [
                 'id' => $row['annonce_participant_id'],
-                'type' => 'participant',
+                'type' => 'Participant_Respond',
                 'participant_name' => $row['sender_name'],
                 'annonce_title' => $row['annonce_title'],
                 'annonce_id' => $row['annonce_id'],
@@ -159,8 +101,4 @@ class Notification extends Objet {
     
         return $notifications;
     }
-    
-
-    
 }
-?>

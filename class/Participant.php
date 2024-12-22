@@ -6,13 +6,6 @@ class Participant extends Objet {
         parent::__construct($conn, $id);
     }
 
-    public function sendErrorResponse($code, $message) {
-        http_response_code($code);
-        echo json_encode([
-            'success' => false,
-            'message' => $message
-        ]);
-    }
 
     public function create($input) {
         try {
@@ -43,55 +36,93 @@ class Participant extends Objet {
                 ]);
                 return true;
             } else {
-                $this->sendErrorResponse(500, "Échec de l'ajout de la participation: " . $stmt->error);
+                sendErrorResponse(500, "Échec de l'ajout de la participation: " . $stmt->error);
                 return false;
             }
         } catch (Exception $e) {
-            $this->sendErrorResponse(500, "Erreur : " . $e->getMessage());
+            sendErrorResponse(500, "Erreur : " . $e->getMessage());
             return false;
         }
     }
 
-    public function addParticipantWithNotification($sender_id, $annonce_id, $receiver_id) {
-        $createQuery = "INSERT INTO annonce_participant (user_id, annonce_id, annonce_participant_user_id_2, annonce_participant_status, annonce_participant_notif) VALUES (?, ?, ?, 'pending', 1)";
-        $stmt = $this->conn->prepare($createQuery);
-        $stmt->bind_param('iii', $sender_id, $annonce_id, $receiver_id);
-        $stmt->execute();
-        return $stmt->insert_id;
-    }
 
-    public function update($input) {
+    public function creatRespond($conn, $input) {
+        $action = $input['notification_action'];
+        $participantId = $input['notification_id'];
+        $annonce_id = $input['annonce_id'];
+        $sender_id = $input['user_id'];
+        $participant_id = $input['participant_id'];
+        
+        $response = ['success' => false];
+    
         try {
-            $query = "UPDATE annonce_participant 
-                      SET annonce_participant_status = ?, 
-                          annonce_participant_notif = 0 
-                      WHERE annonce_participant_id = ?";
-            $stmt = $this->conn->prepare($query);
-    
-            $annonce_participant_status = $input['notification_action'] === 'accept' ? 'confirm' : 'rejected';
-            $annonce_participant_id = $input['notification_id'];
-    
-            $stmt->bind_param('si', $annonce_participant_status, $annonce_participant_id);
-    
-            $result = $stmt->execute();
-    
-            if ($result) {
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'success' => true, 
-                    'message' => "Participation mise à jour avec succès"
-                ]);
-                return true;
+            if ($action === 'accept') {
+                $valueQuery = "SELECT a.annonce_value
+                             FROM annonce a 
+                             WHERE a.annonce_id = ?";
+                $valueStmt = $conn->prepare($valueQuery);
+                $valueStmt->bind_param('i', $annonce_id);
+                $valueStmt->execute();
+                $annonceResult = $valueStmt->get_result()->fetch_assoc();
+
+                if (!$annonceResult) {
+                    throw new Exception("Annonce introuvable");
+                }
+                $amount = $annonceResult['annonce_value'];
+                $participantQuery = "SELECT annonce_participant_status 
+                                   FROM annonce_participant 
+                                   WHERE annonce_participant_id = ?";
+                $participantStmt = $conn->prepare($participantQuery);
+                $participantStmt->bind_param('i', $participantId);
+                $participantStmt->execute();
+                $participantResult = $participantStmt->get_result()->fetch_assoc();
+
+                if ($participantResult['annonce_participant_status'] === 'confirm') {
+                    throw new Exception("Cette participation a déjà été acceptée");
+                }
+
+                $user = new User($conn);
+                $userBalance = $user->getUserEtucoin($sender_id);
+
+                if ($userBalance < $amount) {
+                    throw new Exception("Solde insuffisant pour accepter cette participation");
+                }
+                $transfere = new Transfere($conn);
+                $transferResult = $transfere->createTransfer($conn, $annonce_id, $sender_id, $participant_id, $amount);
+
+                if (!$transferResult) {
+                    throw new Exception("Échec de la création du transfert");
+                }
+
+                $query = "UPDATE annonce_participant 
+                         SET annonce_participant_status = 'confirm', 
+                             annonce_participant_notif = 2
+                            
+                         WHERE annonce_participant_id = ?";
             } else {
-                $this->sendErrorResponse(500, "Échec de la mise à jour de la participation: " . $stmt->error);
-                return false;
+                $query = "UPDATE annonce_participant 
+                         SET annonce_participant_status = 'rejected', 
+                             annonce_participant_notif = 2
+                             
+                         WHERE annonce_participant_id = ?";
+            }
+    
+            $stmt = $conn->prepare($query);
+            $stmt->bind_param('i', $participantId);
+    
+            if ($stmt->execute()) {
+                $response['success'] = true;
+            } else {
+                throw new Exception('Échec de la mise à jour du statut de participation');
             }
         } catch (Exception $e) {
-            $this->sendErrorResponse(500, "Erreur : " . $e->getMessage());
-            return false;
+            $response['success'] = false;
+            $response['error'] = $e->getMessage();
         }
+    
+        echo json_encode($response);
+        exit;
     }
-
     public function countParticipantsForAnnonce($annonce_id) {
         $query = "SELECT COUNT(*) as participant_count FROM annonce_participant WHERE annonce_id = ?";
         $stmt = $this->conn->prepare($query);

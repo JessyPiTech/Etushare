@@ -91,8 +91,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("annonce_value").value = data.annonce.annonce_value || '';
         document.getElementById("category_id").value = data.annonce.category_id || '';
 
-        if (data.annonce.image_lien) {
-            imagePreview.src = data.annonce.image_lien;
+        if (data.annonce.image_path) {
+            imagePreview.src = data.annonce.image_path;
             imagePreviewContainer.style.display = 'block';
         }
     }

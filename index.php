@@ -129,7 +129,7 @@ require_once "./component/head.php";
                 case 'like':
                     notifText = `${notif.sender_name} liked your announcement`;
                     break;
-                case 'participant':
+                case 'Participant_Respond':
                     notifText = `${notif.participant_name} wants to participate in your announcement`;
                     break;
                 case 'transfer':
@@ -155,7 +155,7 @@ require_once "./component/head.php";
 
     function handleNotificationAction(id, type, action, user_id, annonce_id = null, participant_id = null) {
         const requestData = {
-            action: "Notification_Handle",
+            action: "Notification",
             notification_id: id,
             notification_type: type,
             notification_action: action,
@@ -225,7 +225,7 @@ require_once "./component/head.php";
                 category.classList.add('category-name');
 
                 const image = document.createElement('img');
-                image.src = item.image_lien || defaultImage; 
+                image.src = item.image_path || defaultImage; 
                 image.alt = item.image_name || 'Image not available';
                 image.classList.add('annonce-image'); 
 

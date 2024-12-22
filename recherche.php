@@ -65,7 +65,7 @@ function displayData(items, containerId, type, clear = false) {
             const value = document.createElement('p');
             value.textContent = `Value: ${item.annonce_value !== undefined ? item.annonce_value : 'N/A'} €`;
             const image = document.createElement('img');
-            image.src = item.image_lien || defaultImage; 
+            image.src = item.image_path || defaultImage; 
             image.alt = item.image_name || 'Image not available';
             image.classList.add('annonce-image'); 
             li.appendChild(image);

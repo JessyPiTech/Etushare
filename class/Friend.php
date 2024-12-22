@@ -7,20 +7,91 @@ class Friend extends Objet {
     }
 
 
+    public function createRespond($input) {
+        $action = $input['notification_action'];
+        $friendRequestId = $input['notification_id'];
+        
+        $response = ['success' => false];
+    
+        try {
+           
+            $statusQuery = "SELECT user_friend_status 
+                            FROM user_friend 
+                            WHERE user_friend_id = ?";
+            $statusStmt = $this->conn->prepare($statusQuery);
+            $statusStmt->bind_param('i', $friendRequestId);
+            $statusStmt->execute();
+            $statusResult = $statusStmt->get_result()->fetch_assoc();
+    
+            if (!$statusResult) {
+                throw new Exception("Demande d'ami introuvable.");
+            }
+    
+            if ($statusResult['user_friend_status'] === 'confirm') {
+                throw new Exception("Cette demande a déjà été acceptée.");
+            } elseif ($statusResult['user_friend_status'] === 'rejected') {
+                throw new Exception("Cette demande a déjà été refusée.");
+            }
+    
+           
+            if ($action === 'accept') {
+                
+                $query = "UPDATE user_friend 
+                          SET user_friend_status = 'confirm', user_friend_notif = 2 
+                          WHERE user_friend_id = ?";
+            } elseif ($action === 'reject') {
+                $query = "UPDATE user_friend 
+                          SET user_friend_status = 'rejected', user_friend_notif = 2 
+                          WHERE user_friend_id = ?";
+            } else {
+                throw new Exception("Action non valide. Utilisez 'accept' ou 'reject'.");
+            }
+    
+            $stmt =  $this->conn->prepare($query);
+            $stmt->bind_param('i', $friendRequestId);
+    
+            if ($stmt->execute()) {
+                $response['success'] = true;
+            } else {
+                throw new Exception("Échec du traitement de la demande d'ami.");
+            }
+        } catch (Exception $e) {
+            $response['error'] = $e->getMessage();
+        }
+    
+        echo json_encode($response);
+        exit;
+    }
+
+
+  
+
+    
+
     public function create($input) {
         try {
-            $query = "INSERT INTO user_friends (user_id_1, user_id_2, user_friend_icon)
-            VALUES (?, ?, ?)";
-
+            $query = "SELECT user_id FROM users WHERE user_id IN (?, ?)";
             $stmt = $this->conn->prepare($query);
-
             $user_id_1 = $input['user_id_1'];
             $user_id_2 = $input['user_id_2'];
-            $user_friend_icon = $input['user_friend_icon'];
-
-            $stmt->bindParam('iis',$user_id_1, $user_id_2, $user_friend_icon);
+            $stmt->bind_param('ii', $user_id_1, $user_id_2);
+            $stmt->execute();
+            $result = $stmt->get_result();
+    
+            if ($result->num_rows < 2) {
+                $this->sendErrorResponse(404, "Un ou plusieurs utilisateurs n'existent pas.");
+                return false;
+            }
+    
+            $query = "INSERT INTO user_friends (user_id_1, user_id_2, user_friend_icon, user_friend_status) 
+                      VALUES (?, ?, ?, 'pending')";
+            $stmt = $this->conn->prepare($query);
+    
+            $user_friend_icon = $input['user_friend_icon'] ?? "./upload/default.png";
+    
+            $stmt->bind_param('iis', $user_id_1, $user_id_2, $user_friend_icon);
             $result = $stmt->execute();
-            
+    
             if ($result) {
                 header('Content-Type: application/json');
                 echo json_encode([
@@ -39,24 +110,7 @@ class Friend extends Objet {
         }
     }
 
-    public function createFriendRequestWithNotification($sender_id, $receiver_id) {
-        $query = "SELECT * FROM user_friend WHERE user_id_1 = ? AND user_id_2 = ?";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bind_param('ii', $sender_id, $receiver_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows > 0) {
-            return false;
-        }
-
-        $createQuery = "INSERT INTO user_friend (user_id_1, user_id_2, user_friend_notif) VALUES (?, ?, 1)";
-        $stmt = $this->conn->prepare($createQuery);
-        $stmt->bind_param('ii', $sender_id, $receiver_id);
-        $stmt->execute();
-
-        return $stmt->insert_id;
-    }
+    
     
     public function update($input) {
         try {
@@ -90,7 +144,7 @@ class Friend extends Objet {
         }
     }
 
-    public function checkFriendStatus($current_user_id, $target_user_id) {
+    public function getFriendStatus($current_user_id, $target_user_id) {
         $query = "SELECT user_friend_status 
                   FROM user_friend 
                   WHERE (user_id_1 = ? AND user_id_2 = ?) 

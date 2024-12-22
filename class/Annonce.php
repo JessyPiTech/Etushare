@@ -1,62 +1,74 @@
 <?php
 require_once __DIR__ . "/Objet.php";  
+require_once __DIR__ . "/Image.php";  
 
 class Annonce extends Objet {
     public function __construct($conn, $id = null) {
         parent::__construct($conn, $id);
     }
 
+    private function handleAnnonceImage($annonce_id, $file, $title) {
+        // Faudra tout changer ici si on veux mettre plusieur image par annonce.
+        if (!isset($file['annonce_image']) || $file['annonce_image']['error'] !== UPLOAD_ERR_OK) {
+            return;
+        }
+
+        $image = new Image($this->conn);
+        $image_path = handle_image_upload($file['annonce_image']);
+        
+        $check_query = "SELECT image_id FROM annonce_image WHERE annonce_id = ?";
+        $check_stmt = $this->conn->prepare($check_query);
+        $check_stmt->bind_param('i', $annonce_id);
+        $check_stmt->execute();
+        $result = $check_stmt->get_result();
+
+        try {
+            if ($result->num_rows > 0) {
+                $image->update($annonce_id, $image_path);
+            } else {
+                $image->create($annonce_id, $image_path, $title);
+            }
+        } catch (Exception $e) {
+            throw new Exception("Erreur lors du traitement de l'image: " . $e->getMessage());
+        }
+    }
+
     public function create($input) {
         $this->conn->begin_transaction();
     
         try {
-            $query = "INSERT INTO annonce (user_id, annonce_participant_number, annonce_title, annonce_description, annonce_value, category_id)
-                      VALUES (?, ?, ?, ?, ?, ?)";
+            $query = "INSERT INTO annonce (user_id, annonce_participant_number, annonce_title, 
+                     annonce_description, annonce_value, category_id)
+                     VALUES (?, ?, ?, ?, ?, ?)";
+            
             $stmt = $this->conn->prepare($query);
+            $stmt->bind_param('iissii', 
+                $input['user_id'],
+                $input['annonce_participant_number'],
+                $input['annonce_title'],
+                $input['annonce_description'],
+                $input['annonce_value'],
+                $input['category_id']
+            );
     
-            $user_id = $input['user_id'];
-            $annonce_participant_number = $input['annonce_participant_number'];
-            $annonce_title = $input['annonce_title'];
-            $annonce_description = $input['annonce_description'];
-            $annonce_value = $input['annonce_value'];
-            $category_id = $input['category_id'];
-    
-            $stmt->bind_param('iissii', $user_id, $annonce_participant_number, $annonce_title, $annonce_description, $annonce_value, $category_id);
-    
-            if (!$stmt->execute()) {
-                sendErrorResponse(500, "Erreur lors de la création de l'annonce");
-                return false;
-            }
-    
+            $stmt->execute();
             $annonce_id = $this->conn->insert_id;
-            if (isset($input['files']['annonce_image'])) {
-                $image_path = handle_image_upload($input['files']['annonce_image']);
-                
-                if ($image_path) {
-                    $image_query = "INSERT INTO annonce_image (annonce_id, image_lien) VALUES (?, ?)";
-                    $image_stmt = $this->conn->prepare($image_query);
-                    $image_stmt->bind_param('is', $annonce_id, $image_path);
-                    
-                    if (!$image_stmt->execute()) {
-                        $this->sendErrorResponse(500, "Erreur lors de l'enregistrement de l'image");
-                        return false;
-                    }
-                }
+
+            if (isset($input['files'])) {
+                $this->handleAnnonceImage($annonce_id, $input['files'], $input['annonce_title']);
             }
 
             $this->conn->commit();
-            http_response_code(201);
+            
             echo json_encode([
                 'success' => true, 
                 'message' => 'Annonce créée avec succès', 
                 'annonce_id' => $annonce_id
             ]);
-            return true;
-    
+            
         } catch (Exception $e) {
             $this->conn->rollback();
-            $this->sendErrorResponse(500, $e->getMessage());
-            return false;
+            throw new Exception("Erreur lors de la création de l'annonce: " . $e->getMessage());
         }
     }
 
@@ -65,77 +77,40 @@ class Annonce extends Objet {
     
         try {
             $query = "UPDATE annonce 
-                      SET  
-                          annonce_participant_number = ?, 
+                      SET annonce_participant_number = ?, 
                           annonce_title = ?, 
                           annonce_description = ?, 
                           annonce_value = ?, 
                           category_id = ?
                       WHERE annonce_id = ?";
+                      
             $stmt = $this->conn->prepare($query);
+            $stmt->bind_param('issiii',
+                $input['annonce_participant_number'],
+                $input['annonce_title'],
+                $input['annonce_description'],
+                $input['annonce_value'],
+                $input['category_id'],
+                $input['annonce_id']
+            );
     
-            $user_id = $input['user_id'];
-            $annonce_participant_number = $input['annonce_participant_number'];
-            $annonce_title = $input['annonce_title'];
-            $annonce_description = $input['annonce_description'];
-            $annonce_value = $input['annonce_value'];
-            $category_id = $input['category_id'];
-            $annonce_id = $input['annonce_id'];
-    
-            $stmt->bind_param('issiii', $annonce_participant_number, $annonce_title, $annonce_description, $annonce_value, $category_id, $annonce_id);
-    
-            if (!$stmt->execute()) {
-                $this->sendErrorResponse(500, "Erreur lors de la mise à jour de l'annonce");
-                return false;
+            $stmt->execute();
+
+            if (isset($input['files'])) {
+                $this->handleAnnonceImage($input['annonce_id'], $input['files'], $input['annonce_title']);
             }
-    
-            if (isset($input['files']['annonce_image'])) {
-                $image_path = handle_image_upload($input['files']['annonce_image']);
-    
-                if ($image_path) {
-                    $image_check_query = "SELECT image_id FROM annonce_image WHERE annonce_id = ?";
-                    $check_stmt = $this->conn->prepare($image_check_query);
-                    $check_stmt->bind_param('i', $annonce_id);
-                    $check_stmt->execute();
-                    $check_result = $check_stmt->get_result();
-    
-                    if ($check_result->num_rows > 0) {
-                        $image_update_query = "UPDATE annonce_image 
-                                               SET image_lien = ? 
-                                               WHERE annonce_id = ?";
-                        $update_stmt = $this->conn->prepare($image_update_query);
-                        $update_stmt->bind_param('si', $image_path, $annonce_id);
-    
-                        if (!$update_stmt->execute()) {
-                            $this->sendErrorResponse(500, "Erreur lors de la mise à jour de l'image");
-                            return false;
-                        }
-                    } else {
-                        $image_insert_query = "INSERT INTO annonce_image (annonce_id, image_lien) VALUES (?, ?)";
-                        $insert_stmt = $this->conn->prepare($image_insert_query);
-                        $insert_stmt->bind_param('is', $annonce_id, $image_path);
-    
-                        if (!$insert_stmt->execute()) {
-                            $this->sendErrorResponse(500, "Erreur lors de l'ajout de l'image");
-                            return false;
-                        }
-                    }
-                }
-            }
-    
+
             $this->conn->commit();
-            http_response_code(200);
+            
             echo json_encode([
                 'success' => true, 
                 'message' => 'Annonce mise à jour avec succès', 
-                'annonce_id' => $annonce_id
+                'annonce_id' => $input['annonce_id']
             ]);
-            return true;
-    
+            
         } catch (Exception $e) {
             $this->conn->rollback();
-            $this->sendErrorResponse(500, $e->getMessage());
-            return false;
+            throw new Exception("Erreur lors de la mise à jour de l'annonce: " . $e->getMessage());
         }
     }
 
@@ -159,7 +134,7 @@ class Annonce extends Objet {
                     $query = "
                         SELECT 
                             a.*, 
-                            ai.image_name, ai.image_lien,
+                            ai.image_name, ai.image_path,
                             c.category_name,
                             CASE WHEN al.annonce_like_id IS NOT NULL THEN 1 ELSE 0 END as is_liked,
                             CASE WHEN ap.annonce_participant_id IS NOT NULL THEN 1 ELSE 0 END as is_participant,
@@ -170,7 +145,7 @@ class Annonce extends Objet {
                         LEFT JOIN annonce_like al ON a.annonce_id = al.annonce_id AND al.user_id = ?
                         LEFT JOIN annonce_participant ap ON a.annonce_id = ap.annonce_id AND ap.user_id = ?
                         LEFT JOIN category c ON a.category_id = c.category_id
-                        GROUP BY a.annonce_id, ai.image_name, ai.image_lien, c.category_name
+                        GROUP BY a.annonce_id, ai.image_name, ai.image_path, c.category_name
                         ORDER BY a.annonce_id DESC
                         LIMIT ? OFFSET ?";
                     $params = [$userId, $userId, $limit, $offset];
@@ -184,7 +159,7 @@ class Annonce extends Objet {
                     $query = "
                         SELECT 
                             a.*, 
-                            ai.image_name, ai.image_lien,
+                            ai.image_name, ai.image_path,
                             c.category_name, 
                             CASE WHEN al.annonce_like_id IS NOT NULL THEN 1 ELSE 0 END as is_liked,
                             CASE WHEN ap.annonce_participant_id IS NOT NULL THEN 1 ELSE 0 END as is_participant,
@@ -196,7 +171,7 @@ class Annonce extends Objet {
                         LEFT JOIN annonce_participant ap ON a.annonce_id = ap.annonce_id AND ap.user_id = ?
                         LEFT JOIN category c ON a.category_id = c.category_id 
                         WHERE a.category_id = ?  
-                        GROUP BY a.annonce_id, ai.image_name, ai.image_lien, c.category_name
+                        GROUP BY a.annonce_id, ai.image_name, ai.image_path, c.category_name
                         ORDER BY a.annonce_id DESC 
                         LIMIT ? OFFSET ?";
                     $params = [$userId, $userId, $categoryId, $limit, $offset];
@@ -210,7 +185,7 @@ class Annonce extends Objet {
                     $query = "
                         SELECT 
                             a.*, 
-                            ai.image_name, ai.image_lien,
+                            ai.image_name, ai.image_path,
                             c.category_name, 
                             CASE WHEN al.annonce_like_id IS NOT NULL THEN 1 ELSE 0 END as is_liked,
                             CASE WHEN ap.annonce_participant_id IS NOT NULL THEN 1 ELSE 0 END as is_participant,
@@ -223,7 +198,7 @@ class Annonce extends Objet {
                         LEFT JOIN annonce_participant ap ON a.annonce_id = ap.annonce_id AND ap.user_id = ?
                         LEFT JOIN category c ON a.category_id = c.category_id
                         WHERE al.user_id = ? 
-                        GROUP BY a.annonce_id, ai.image_name, ai.image_lien
+                        GROUP BY a.annonce_id, ai.image_name, ai.image_path
                         ORDER BY a.annonce_id DESC 
                         LIMIT ? OFFSET ?";
                     $params = [$userId, $userId, $userId, $limit, $offset];
@@ -237,7 +212,7 @@ class Annonce extends Objet {
                     $query = "
                         SELECT 
                             a.*, 
-                            ai.image_name, ai.image_lien,
+                            ai.image_name, ai.image_path,
                             c.category_name, 
                             CASE WHEN al.annonce_like_id IS NOT NULL THEN 1 ELSE 0 END as is_liked,
                             CASE WHEN ap.annonce_participant_id IS NOT NULL THEN 1 ELSE 0 END as is_participant,
@@ -250,7 +225,7 @@ class Annonce extends Objet {
                         LEFT JOIN annonce_participant ap2 ON a.annonce_id = ap2.annonce_id AND ap2.user_id = ?
                         LEFT JOIN category c ON a.category_id = c.category_id 
                         WHERE ap.user_id = ? 
-                        GROUP BY a.annonce_id, ai.image_name, ai.image_lien
+                        GROUP BY a.annonce_id, ai.image_name, ai.image_path
                         ORDER BY a.annonce_id DESC 
                         LIMIT ? OFFSET ?";
                     $params = [$userId, $userId, $userId, $limit, $offset];
@@ -272,7 +247,7 @@ class Annonce extends Objet {
             $annonce = [];
             while ($row = $result->fetch_assoc()) {
                 $row['image_name'] = $row['image_name'] ?? null;
-                $row['image_lien'] = $row['image_lien'] ?? null;
+                $row['image_path'] = $row['image_path'] ?? null;
                 $row['is_liked'] = (bool)($row['is_liked'] ?? false);
                 $row['is_participant'] = (bool)($row['is_participant'] ?? false);
                 $row['like_count'] = (int)$row['like_count'];
@@ -302,7 +277,7 @@ class Annonce extends Objet {
                 SELECT 
                     a.*, 
                     ai.image_name, 
-                    ai.image_lien,
+                    ai.image_path,
                     c.category_name,
                     CASE WHEN al.annonce_like_id IS NOT NULL THEN 1 ELSE 0 END as is_liked,
                     CASE WHEN ap.annonce_participant_id IS NOT NULL THEN 1 ELSE 0 END as is_participant,
@@ -314,7 +289,7 @@ class Annonce extends Objet {
                 LEFT JOIN annonce_participant ap ON a.annonce_id = ap.annonce_id AND ap.user_id = ?
                 LEFT JOIN category c ON a.category_id = c.category_id
                 WHERE a.user_id = ?
-                GROUP BY a.annonce_id, ai.image_name, ai.image_lien, c.category_name
+                GROUP BY a.annonce_id, ai.image_name, ai.image_path, c.category_name
                 ORDER BY a.annonce_id DESC
                 LIMIT ? OFFSET ?";
 
@@ -330,7 +305,7 @@ class Annonce extends Objet {
             $annonce = [];
             while ($row = $result->fetch_assoc()) {
                 $row['image_name'] = $row['image_name'] ?? null;
-                $row['image_lien'] = $row['image_lien'] ?? null;
+                $row['image_path'] = $row['image_path'] ?? null;
                 $row['is_liked'] = (bool)$row['is_liked'];
                 $row['is_participant'] = (bool)$row['is_participant'];
                 $row['like_count'] = (int)$row['like_count'];
@@ -346,14 +321,18 @@ class Annonce extends Objet {
             return false;
         }
     }
+
+
+
     public function getAnnonceById($conn, $annonce_id) {
-        $query = "SELECT a.*, u.user_name, u.user_image_profil, c.category_name, 
+        $query = "SELECT a.*, u.user_name, u.user_image_profil, c.category_name, ai.image_path, ai.image_name,
                   (SELECT COUNT(*) FROM annonce_like al WHERE al.annonce_id = a.annonce_id) as like_count,
                   (SELECT COUNT(*) FROM annonce_participant ap WHERE ap.annonce_id = a.annonce_id) as participant_count,
                   EXISTS(SELECT 1 FROM annonce_like al WHERE al.annonce_id = a.annonce_id AND al.user_id = ?) as is_liked,
                   EXISTS(SELECT 1 FROM annonce_participant ap WHERE ap.annonce_id = a.annonce_id AND ap.user_id = ?) as is_participant
                   FROM annonce a
                   JOIN user u ON a.user_id = u.user_id
+                  JOIN annonce_image ai ON a.annonce_id = ai.annonce_id
                   JOIN category c ON a.category_id = c.category_id
                   WHERE a.annonce_id = ?";
         

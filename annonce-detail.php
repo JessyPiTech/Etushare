@@ -80,6 +80,13 @@ if (!$annonce_id) die("Invalid announcement");
     font-weight: bold;
 }
 
+.participant-user{
+    display: flex
+;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
 
 
 .annonce-big{
@@ -105,16 +112,7 @@ if (!$annonce_id) die("Invalid announcement");
             <img src="" alt="" class="user-image" id="user-image">
             <span class="user-name" id="user-name"></span>
         </a>
-        <div id="annonce-interactions" class="interaction-container">
-            <div id="like-section" class="interaction-item like-container">
-                <button id="like-button" class="like-button"></button>
-                <span id="like-count" class="like-count"></span>
-            </div>
-            <div id="participate-section" class="interaction-item participate-container">
-                <button id="participate-button" class="participate-button"></button>
-                <span id="participant-count" class="participant-count"></span>
-            </div>
-        </div>
+        
         <div id="validated-participants">
             <h3>Validated Participants</h3>
             <div id="participants-list"></div>
@@ -128,7 +126,7 @@ if (!$annonce_id) die("Invalid announcement");
 <script src="./static/js/likeParticipation.js"></script>
 <script>
 const defaultImage = './upload/default.png';
-
+const user_id = '<?php echo $_SESSION['user_id'] ?>';
 async function loadAnnonceDetails() {
     try {
         const requestData = { 
@@ -139,7 +137,7 @@ async function loadAnnonceDetails() {
         const data = await postData(apiUrl, requestData);
 
         const { annonce, likeCount, participantCount } = data;
-        document.getElementById('annonce-image').src = annonce.user_image_profil || defaultImage;
+        document.getElementById('annonce-image').src = annonce.image_path || defaultImage;
         document.getElementById('annonce-image').alt = annonce.annonce_title;
         document.getElementById('annonce-title').textContent = annonce.annonce_title;
         document.getElementById('annonce-description').textContent = annonce.annonce_description;
@@ -149,36 +147,12 @@ async function loadAnnonceDetails() {
         document.getElementById('user-image').src = annonce.user_image_profil || defaultImage;
         document.getElementById('user-image').alt = annonce.user_name;
         document.getElementById('user-name').textContent = annonce.user_name;
-
-        const likeButton = document.getElementById('like-button');
-        const likeCountSpan = document.getElementById('like-count');
-        likeButton.innerHTML = annonce.is_liked 
-            ? '<ion-icon name="heart"></ion-icon> Dislike'
-            : '<ion-icon name="heart-outline"></ion-icon> Like';
-        likeCountSpan.textContent = likeCount;
-
-        likeButton.onclick = async () => {
-            const response = annonce.is_liked 
-                ? await suppLike(annonce.annonce_id, <?php echo $_SESSION['user_id']; ?>) 
-                : await addLike(annonce.annonce_id, <?php echo $_SESSION['user_id']; ?>);
-            
-            if (response.success) loadAnnonceDetails();
-        };
-
-        const participateButton = document.getElementById('participate-button');
-        const participantCountSpan = document.getElementById('participant-count');
-        participateButton.innerHTML = annonce.is_participant 
-            ? '<ion-icon name="checkmark"></ion-icon> Unparticipate'
-            : '<ion-icon name="arrow-forward-outline"></ion-icon> Participate';
-        participantCountSpan.textContent = participantCount;
-
-        participateButton.onclick = async () => {
-            const response = annonce.is_participant 
-                ? await suppParticipant(annonce.annonce_id, <?php echo $_SESSION['user_id']; ?>)
-                : await addParticipant(annonce.annonce_id, <?php echo $_SESSION['user_id']; ?>);
-            
-            if (response.success) loadAnnonceDetails();
-        };
+        const div = document.getElementById('annonce-details');
+        if (user_id == annonce.user_id){
+            loadValidatedParticipants()
+        }
+        const interactionDiv = await affichageInteraction(annonce, user_id);
+        div.append(interactionDiv);
 
     } catch (error) {
         console.error('Failed to load announcement details:', error);
@@ -195,24 +169,37 @@ async function loadValidatedParticipants() {
         const { participants, isCreator } = await postData(apiUrl, requestData);
 
         const participantsList = document.getElementById('participants-list');
+
+        const generateUserInfo = (user) => `
+            <div class="user-info-container">
+                <img src="${user.user_image_profil}" alt="${user.user_name}" class="user-image">
+                <span>${user.user_name}</span>
+                <span>Amount: ${user.transfer_amount}</span>
+            </div>
+        `;
+
+        const generateActionButtons = (transferId) => `
+            <div class="interaction-container">
+                <button onclick="validateTransfer(${transferId})">Validate Work</button>
+                <button onclick="rejectTransfer(${transferId})">Reject Work</button>
+            </div>
+        `;
+
         participantsList.innerHTML = participants.map(p => {
-            let actionButtons = '';
-            if (isCreator) {
-                actionButtons = `
-                    <div class="transfer-actions">
-                        <button onclick="validateTransfer(${p.transfer_id})">Validate Work</button>
-                        <button onclick="rejectTransfer(${p.transfer_id})">Reject Work</button>
-                    </div>
-                `;
+            const userInfo = generateUserInfo(p);
+            const actionButtons = isCreator ? generateActionButtons(p.transfer_id) : '';
+            let statusContent = '';
+
+            if (p.transfer_status === 'approved') {
+                statusContent = '<div>Travail confirmé</div>';
+            } else if (p.transfer_status === 'pending') {
+                statusContent = actionButtons;
             }
 
             return `
-                <div class="participant-item">
-                    <img src="${p.user_image_profil}" alt="${p.user_name}" class="participant-image">
-                    <span>${p.user_name}</span>
-                    <span>Amount: ${p.transfer_amount}</span>
-                    <span>Date: ${p.transfer_time}</span>
-                    ${actionButtons}
+                <div class="participant-user">
+                    ${userInfo}
+                    ${statusContent}
                 </div>
             `;
         }).join('');
@@ -249,7 +236,7 @@ async function loadValidatedParticipants() {
 }
 
 window.onload = () => {
-    loadAnnonceDetails().then(loadValidatedParticipants);
+    loadAnnonceDetails();
 };
 </script>
 

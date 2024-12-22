@@ -131,7 +131,7 @@ class Transfere extends Objet {
                              t.transfer_id, t.transfer_status, t.transfer_amount, t.transfer_time
                       FROM transfere t
                       JOIN user u ON t.user_id_2 = u.user_id
-                      WHERE t.annonce_id = ? AND t.transfer_status = 'approved'";
+                      WHERE t.annonce_id = ? AND (t.transfer_status = 'pending' OR t.transfer_status = 'approved')";
 
             $stmt = $conn->prepare($query);
             $stmt->bind_param('i', $annonce_id);

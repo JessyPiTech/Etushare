@@ -123,6 +123,15 @@ class User extends Objet {
         $result = $stmt->get_result();
         return $result->fetch_assoc();
     }
+    public function getUserEtucoin($user_id) {
+        $query = "SELECT user_etucoin FROM user WHERE user_id = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bind_param('i', $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result()->fetch_assoc();
+        
+        return $result ? floatval($result['user_etucoin']) : 0;
+    }
 }
 ?>
 
