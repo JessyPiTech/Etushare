@@ -153,7 +153,7 @@ async function addLike(annonceId, userId) {
 async function addParticipant(annonceId, userId) {
     try {
         const requestData = {
-            action: 'Participant_Create',
+            action: 'Participant_Request',
             annonce_id: annonceId,
             user_id: userId
         };

@@ -2,11 +2,12 @@
     <div>
         <a href="./"><img id="logo" src="./static/asset/logo_etushare-removebg-preview.png" alt=""></a>
         <div>
-            
-            <div class="shearch-bar">
-                <input type="text" placeholder="Search..." class="shearch-input" />
+            <form class="shearch-bar" action="http://localhost:3001/important/etushare/recherche.php" method="GET">
+                <input type="text" name="Recherche" placeholder="Search..." class="shearch-input" id="searchInput">
+                
                 <ion-icon style="color: var(--black);" name="search-outline" onclick="toggleSearch()"></ion-icon>
-            </div>
+               
+            </form>
             <mini-header>
                 <a href="create-annonce.php"  class="special flex-align-center" >
                     <ion-icon name="add-outline"></ion-icon>
@@ -29,7 +30,9 @@
         </div>
     </div>
 </header>
+
 <script>
+    // Fonction pour activer la barre de recherche
     function toggleSearch() {
         const searchBar = document.querySelector('.shearch-bar');
         const input = document.querySelector('.shearch-input');
@@ -42,6 +45,7 @@
         }
     }
 
+    // Fonction pour désactiver la barre de recherche en cliquant à l'extérieur
     function handleOutsideClick(event) {
         const searchBar = document.querySelector('.shearch-bar');
         const logo = document.getElementById('logo');

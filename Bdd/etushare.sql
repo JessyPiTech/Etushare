@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : dim. 22 déc. 2024 à 22:10
+-- Généré le : dim. 29 déc. 2024 à 18:43
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.2.18
 
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS `annonce` (
   `category_id` int NOT NULL,
   PRIMARY KEY (`annonce_id`),
   KEY `user_id` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Déchargement des données de la table `annonce`
@@ -49,27 +49,9 @@ INSERT INTO `annonce` (`annonce_id`, `user_id`, `annonce_participant_number`, `a
 (24, 8, 2, 'test1', 'sdsdsds', 115, '2024-12-16 00:29:56', 1),
 (26, 8, 2, 'test3', 'scouonvsdeded', 112, '2024-12-16 00:31:09', 1),
 (27, 9, 2, 'jeu', 'zdecw', 110, '2024-12-16 10:42:15', 1),
-(28, 11, 2, 'test6', 'mlp,kl', 110, '2024-12-17 22:19:12', 2);
-
--- --------------------------------------------------------
-
---
--- Structure de la table `annonce_commantaire`
---
-
-DROP TABLE IF EXISTS `annonce_commantaire`;
-CREATE TABLE IF NOT EXISTS `annonce_commantaire` (
-  `commantaire_id` int NOT NULL AUTO_INCREMENT,
-  `annonce_id` int NOT NULL,
-  `user_id` int NOT NULL,
-  `commantaire_text` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `commantaire_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `commantaire_notif` int NOT NULL DEFAULT '0',
-  PRIMARY KEY (`commantaire_id`),
-  UNIQUE KEY `annonce_id` (`annonce_id`,`user_id`),
-  KEY `annonce_id_2` (`annonce_id`,`user_id`),
-  KEY `user_id` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+(28, 11, 2, 'test6', 'mlp,kl', 110, '2024-12-17 22:19:12', 2),
+(31, 8, 2, 'eedsd', 'test de focntionnement multiple', 152, '2024-12-27 16:22:37', 1),
+(35, 8, 2, 'test 5', 'dzedzsd', 150, '2024-12-27 16:28:56', 1);
 
 -- --------------------------------------------------------
 
@@ -85,7 +67,7 @@ CREATE TABLE IF NOT EXISTS `annonce_image` (
   `image_path` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   PRIMARY KEY (`image_id`),
   KEY `annonce_id` (`annonce_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Déchargement des données de la table `annonce_image`
@@ -95,7 +77,9 @@ INSERT INTO `annonce_image` (`image_id`, `annonce_id`, `image_name`, `image_path
 (1, 24, '', './upload/675f66747d81c.png'),
 (3, 26, '', './upload/6760cf4f9f9b8.png'),
 (4, 27, '', './upload/675ff5f76f687.png'),
-(5, 28, '', './upload/6761ead03ed19.jpg');
+(5, 28, '', './upload/6761ead03ed19.jpg'),
+(6, 31, 'eedsd', './upload/676ec63d4ef0a.webp'),
+(7, 35, 'test 5', './upload/676ec7b8cc0e9.webp');
 
 -- --------------------------------------------------------
 
@@ -112,7 +96,7 @@ CREATE TABLE IF NOT EXISTS `annonce_like` (
   PRIMARY KEY (`annonce_like_id`),
   KEY `annonce_id` (`annonce_id`,`user_id`),
   KEY `user_id` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=131 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=134 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Déchargement des données de la table `annonce_like`
@@ -120,10 +104,11 @@ CREATE TABLE IF NOT EXISTS `annonce_like` (
 
 INSERT INTO `annonce_like` (`annonce_like_id`, `annonce_id`, `user_id`, `annonce_like_notif`) VALUES
 (53, 26, 9, 0),
-(125, 27, 8, 0),
 (126, 27, 11, 0),
 (127, 26, 8, 0),
-(129, 24, 11, 0);
+(129, 24, 11, 0),
+(131, 28, 8, 0),
+(133, 35, 11, 0);
 
 -- --------------------------------------------------------
 
@@ -142,14 +127,16 @@ CREATE TABLE IF NOT EXISTS `annonce_participant` (
   PRIMARY KEY (`annonce_participant_id`),
   KEY `annonce_id` (`annonce_id`,`user_id`),
   KEY `user_id` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Déchargement des données de la table `annonce_participant`
 --
 
 INSERT INTO `annonce_participant` (`annonce_participant_id`, `annonce_id`, `user_id`, `annonce_participant_status`, `annonce_participant_date`, `annonce_participant_notif`) VALUES
-(2, 28, 8, 'confirm', '2024-12-22 23:04:49', 2);
+(2, 28, 8, 'accepted', '2024-12-22 23:04:49', 2),
+(5, 27, 11, 'pending', '2024-12-29 16:29:55', 0),
+(13, 35, 11, 'accepted', '2024-12-29 17:14:26', 2);
 
 -- --------------------------------------------------------
 
@@ -170,7 +157,7 @@ CREATE TABLE IF NOT EXISTS `category` (
 --
 
 INSERT INTO `category` (`category_id`, `category_name`, `category_icon`) VALUES
-(1, 'Sports', 0),
+(1, 'test', 0),
 (2, 'Technology', 0),
 (3, 'Music', 0);
 
@@ -187,7 +174,16 @@ CREATE TABLE IF NOT EXISTS `category_key_word` (
   `category_id` int NOT NULL,
   PRIMARY KEY (`category_key_word_id`),
   KEY `category_id` (`category_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Déchargement des données de la table `category_key_word`
+--
+
+INSERT INTO `category_key_word` (`category_key_word_id`, `category_key_word`, `category_id`) VALUES
+(1, 'huit', 1),
+(2, 'jeu', 1),
+(3, 'test', 1);
 
 -- --------------------------------------------------------
 
@@ -210,7 +206,7 @@ CREATE TABLE IF NOT EXISTS `transfere` (
   KEY `user_id_1` (`user_id_1`),
   KEY `user_id_2` (`user_id_2`),
   KEY `annonce_id` (`annonce_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Déchargement des données de la table `transfere`
@@ -218,7 +214,10 @@ CREATE TABLE IF NOT EXISTS `transfere` (
 
 INSERT INTO `transfere` (`transfer_id`, `user_id_1`, `user_id_2`, `annonce_id`, `transfere`, `transfer_time`, `transfer_notif`, `transfer_amount`, `transfer_status`) VALUES
 (1, 11, 8, 28, 1, '2024-12-22 13:05:42', 0, 110.00, 'approved'),
-(2, 11, 8, 28, 1, '2024-12-22 23:07:22', 0, 110.00, 'approved');
+(2, 11, 8, 28, 1, '2024-12-22 23:07:22', 0, 110.00, 'approved'),
+(3, 8, 11, 35, 0, '2024-12-29 19:40:15', 0, 150.00, 'rejected'),
+(4, 8, 11, 35, 0, '2024-12-29 19:40:15', 0, 150.00, 'rejected'),
+(5, 8, 11, 35, 0, '2024-12-29 19:40:16', 0, 150.00, 'rejected');
 
 -- --------------------------------------------------------
 
@@ -252,6 +251,28 @@ INSERT INTO `user` (`user_id`, `user_name`, `user_etucoin`, `user_image_profil`,
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `user_avis`
+--
+
+DROP TABLE IF EXISTS `user_avis`;
+CREATE TABLE IF NOT EXISTS `user_avis` (
+  `user_avis_id` int NOT NULL AUTO_INCREMENT,
+  `user_id_1` int NOT NULL,
+  `user_id_2` int NOT NULL,
+  `annonce_id` int NOT NULL,
+  `avis_text` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `user_avis_note` int NOT NULL DEFAULT '5',
+  `user_avis_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `user_avis_notif` int NOT NULL DEFAULT '0',
+  PRIMARY KEY (`user_avis_id`),
+  UNIQUE KEY `annonce_id` (`user_id_1`,`annonce_id`),
+  KEY `annonce_id_2` (`user_id_1`,`annonce_id`),
+  KEY `user_id` (`annonce_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `user_friend`
 --
 
@@ -267,18 +288,14 @@ CREATE TABLE IF NOT EXISTS `user_friend` (
   PRIMARY KEY (`user_friend_id`),
   KEY `user_id_1` (`user_id_1`,`user_id_2`),
   KEY `user_id_2` (`user_id_2`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Déchargement des données de la table `user_friend`
 --
 
 INSERT INTO `user_friend` (`user_friend_id`, `user_id_1`, `user_id_2`, `user_friend_icon`, `user_friend_time`, `user_friend_status`, `user_friend_notif`) VALUES
-(5, 11, 9, '', '2024-12-17 02:45:41', '1', 2),
-(6, 8, 9, '', '2024-12-17 02:46:40', '1', 2),
-(7, 8, 9, '', '2024-12-17 02:46:45', '1', 2),
-(8, 8, 9, '', '2024-12-17 02:46:54', '1', 2),
-(9, 11, 8, '', '2024-12-17 02:48:12', '1', 2);
+(10, 8, 11, './upload/default.png', '2024-12-29 17:26:51', 'accept', 2);
 
 -- --------------------------------------------------------
 
@@ -310,14 +327,29 @@ CREATE TABLE IF NOT EXISTS `user_friend_message` (
   `user_friend_id` int NOT NULL,
   `user_id` int NOT NULL,
   `user_friend_message_text` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `user_friend_message_time` datetime(6) NOT NULL,
+  `user_friend_message_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `user_friend_message` int NOT NULL DEFAULT '0',
   `user_friend_message_notif` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`user_friend_message_id`),
   KEY `user_id` (`user_id`),
   KEY `conversation_id` (`user_friend_id`),
   KEY `user_friend_id` (`user_friend_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Déchargement des données de la table `user_friend_message`
+--
+
+INSERT INTO `user_friend_message` (`user_friend_message_id`, `user_friend_id`, `user_id`, `user_friend_message_text`, `user_friend_message_time`, `user_friend_message`, `user_friend_message_notif`) VALUES
+(1, 10, 8, 'xqsw', '2024-12-29 19:33:16', 0, 1),
+(2, 10, 11, 'xqsw', '2024-12-29 19:33:16', 0, 1),
+(3, 10, 8, 'xsqsq', '2024-12-29 19:33:18', 0, 1),
+(4, 10, 11, 'xsqsq', '2024-12-29 19:33:18', 0, 1),
+(5, 10, 8, 'xsqxsq', '2024-12-29 19:33:20', 0, 1),
+(6, 10, 11, 'xsqxsq', '2024-12-29 19:33:20', 0, 1),
+(7, 10, 8, 'ded', '2024-12-29 19:36:20', 0, 1),
+(8, 10, 8, 'khb', '2024-12-29 19:36:24', 0, 1),
+(9, 10, 8, 'trcgv', '2024-12-29 19:36:32', 0, 1);
 
 --
 -- Contraintes pour les tables déchargées
@@ -328,13 +360,6 @@ CREATE TABLE IF NOT EXISTS `user_friend_message` (
 --
 ALTER TABLE `annonce`
   ADD CONSTRAINT `annonce_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
---
--- Contraintes pour la table `annonce_commantaire`
---
-ALTER TABLE `annonce_commantaire`
-  ADD CONSTRAINT `annonce_commantaire_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `annonce_commantaire_ibfk_2` FOREIGN KEY (`annonce_id`) REFERENCES `annonce` (`annonce_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `annonce_image`
@@ -361,6 +386,13 @@ ALTER TABLE `annonce_participant`
 --
 ALTER TABLE `category_key_word`
   ADD CONSTRAINT `category_key_word_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `category` (`category_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `user_avis`
+--
+ALTER TABLE `user_avis`
+  ADD CONSTRAINT `user_avis_ibfk_1` FOREIGN KEY (`annonce_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `user_avis_ibfk_2` FOREIGN KEY (`user_id_1`) REFERENCES `annonce` (`annonce_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `user_friend`

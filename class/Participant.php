@@ -7,7 +7,7 @@ class Participant extends Objet {
     }
 
 
-    public function create($input) {
+    public function createRequest($input) {
         try {
             $query = "SELECT user_id FROM annonce WHERE annonce_id = ?";
             $stmt = $this->conn->prepare($query);
@@ -17,7 +17,7 @@ class Participant extends Objet {
             $annonce_owner = $result->fetch_assoc()['user_id'];
     
             $query = "INSERT INTO annonce_participant (user_id, annonce_id, annonce_participant_status, annonce_participant_notif) 
-                      VALUES (?, ?, 'pending', 1)";
+                      VALUES (?, ?, 'pending', 0)";
             $stmt = $this->conn->prepare($query);
     
             $user_id = $input['user_id'];
@@ -77,7 +77,7 @@ class Participant extends Objet {
                 $participantStmt->execute();
                 $participantResult = $participantStmt->get_result()->fetch_assoc();
 
-                if ($participantResult['annonce_participant_status'] === 'confirm') {
+                if ($participantResult['annonce_participant_status'] === 'accept') {
                     throw new Exception("Cette participation a déjà été acceptée");
                 }
 
@@ -95,15 +95,13 @@ class Participant extends Objet {
                 }
 
                 $query = "UPDATE annonce_participant 
-                         SET annonce_participant_status = 'confirm', 
-                             annonce_participant_notif = 2
-                            
+                         SET annonce_participant_status = 'accept',
+                            annonce_participant_notif = 1
                          WHERE annonce_participant_id = ?";
             } else {
                 $query = "UPDATE annonce_participant 
-                         SET annonce_participant_status = 'rejected', 
-                             annonce_participant_notif = 2
-                             
+                         SET annonce_participant_status = 'reject',
+                         annonce_participant_notif = 1
                          WHERE annonce_participant_id = ?";
             }
     

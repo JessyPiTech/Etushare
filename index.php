@@ -38,7 +38,6 @@ require_once "./component/head.php";
                     </div>
                     <button onclick="droit('category-annonces')" class="carousel-button carousel-button-right"><ion-icon  name="chevron-forward-outline"></ion-icon></button>
                 </div>
-                <button onclick="loadMore('Category', 'category-annonces')">Load More Category Annonces</button>
             </div>
             
             <div>
@@ -50,7 +49,6 @@ require_once "./component/head.php";
                     </div>
                     <button onclick="droit('like-annonces')" class="carousel-button carousel-button-right"><ion-icon  name="chevron-forward-outline"></ion-icon></button>
                 </div>
-                <button onclick="loadMore('Like', 'like-annonces')">Load More Like Annonces</button>
             </div>
             <div>
                 <h3>Participant Annonces</h3>
@@ -61,7 +59,7 @@ require_once "./component/head.php";
                     </div>
                     <button onclick="droit('participant-annonces')" class="carousel-button carousel-button-right"><ion-icon  name="chevron-forward-outline"></ion-icon></button>
                 </div>
-                <button onclick="loadMore('Participant', 'participant-annonces')">Load More Participant Annonces</button>
+                
             </div>
         </div>
     </div>
@@ -69,8 +67,13 @@ require_once "./component/head.php";
 <script src="./static/js/postData.js"></script>
 <script src="./static/js/likeParticipation.js"></script>
 <script src="./static/js/carrouselMove.js"></script>
+<script src="./static/js/displayAnnonces.js"></script>
 
 <script>
+    
+    
+    const category_id = <?php 
+    if (!isset($_SESSION['last_category_id']) || empty($_SESSION['last_category_id'])) {echo 0; } else {echo $_SESSION['last_category_id'];}?>;
     const user_id = '<?php echo $_SESSION['user_id'] ?>';
     const defaultImage = './upload/default.png';
     let offsets = {
@@ -85,22 +88,41 @@ require_once "./component/head.php";
         try {
             const requestData = { 
                 action: "Dashboard_Load", 
-                category_id: 2,  
+                category_id: category_id,  
                 user_id: user_id,
             };
             const data = await postData(apiUrl, requestData);
 
             if (data.error) throw new Error(data.error);
 
-            displayData(user_id, data.allAnnonces, 'all-annonces', 'Annonce');
-            displayData(user_id, data.categoryAnnonces, 'category-annonces', 'Category');
-            displayData(user_id, data.likeAnnonces, 'like-annonces', 'Like');
-            displayData(user_id, data.participantAnnonces, 'participant-annonces', 'Participant');
+            await displayAnnonces(user_id, data.allAnnonces, 'all-annonces', {
+                displayType: 'carousel',
+                showRedirectionButton: true,
+                redirectionUrl: './recherche.php?Recherche=all'
+            });
+            
+            await displayAnnonces(user_id, data.categoryAnnonces, 'category-annonces', {
+                displayType: 'carousel',
+                showRedirectionButton: true, 
+                redirectionUrl: `./recherche.php?Recherche=0&Category=${category_id}`
+            });
+
+            await displayAnnonces(user_id, data.likeAnnonces, 'like-annonces', {
+                displayType: 'carousel',
+                showRedirectionButton: true,
+                redirectionUrl: './favoris.php'
+            });
+
+            await displayAnnonces(user_id, data.participantAnnonces, 'participant-annonces', {
+                displayType: 'carousel',
+                showRedirectionButton: true,
+                redirectionUrl: './favoris.php'
+            });
 
             if (data.notifications) {
                 displayNotifications(data.notifications, user_id);
             }
-        } catch (error) { 
+        } catch (error) {
             console.error('Failed to load data:', error);
         }
     }
@@ -122,52 +144,104 @@ require_once "./component/head.php";
             notifItem.classList.add('notification-item');
 
             let notifText = '';
+            let actions = '';
+
             switch (notif.type) {
-                case 'friend_request':
+                case 'Like':
+                    notifText = `${notif.sender_name} liked your announcement: "${notif.annonce_title}"`;
+                    actions = `<button onclick="markAsViewed(${notif.id}, 'Validation', '${notif.type}', ${user_id})">OK</button>`;
+                    break;
+                case 'Avis':
+                    notifText = `${notif.sender_name} left a review: "${notif.avis_text}" with a rating of ${notif.avis_note}/5`;
+                    actions = `<button onclick="markAsViewed(${notif.id}, 'Validation', '${notif.type}', ${user_id})">OK</button>`;
+                    break;
+                case 'Message':
+                    notifText = `${notif.sender_name} sent you a message: "${notif.message_text}"`;
+                    actions = `<button onclick="markAsViewed(${notif.id}, 'Validation', '${notif.type}', ${user_id})">OK</button>`;
+                    break;
+                case 'Friend_Request':
                     notifText = `New friend request from ${notif.sender_name}`;
+                    actions = `
+                        <button onclick="handleNotificationAction(${notif.id}, 'Friend_Respond',  null, 'accept', ${user_id})">Accept</button>
+                        <button onclick="handleNotificationAction(${notif.id}, 'Friend_Respond',  null, 'reject', ${user_id})">Reject</button>
+                    `;
                     break;
-                case 'like':
-                    notifText = `${notif.sender_name} liked your announcement`;
+                case 'Friend_Respond':
+                    notifText = `${notif.sender_name} responded to your friend request: ` +
+                                `${notif.status === 'accept' ? 'accept' : 'reject'}`;
+                    actions = `
+                        <button onclick="markAsViewed(${notif.id}, 'Validation', '${notif.type}',${user_id})">OK</button>
+                    `;
                     break;
+
                 case 'Participant_Respond':
-                    notifText = `${notif.participant_name} wants to participate in your announcement`;
+                    notifText = `${notif.participant_name} wants to participate in your announcement: "${notif.annonce_title}" ` +
+                                `and the request was ${notif.status === 'accept' ? 'accept' : 'reject'}`;
+                    actions = `
+                        <button onclick="markAsViewed(${notif.id}, 'Validation', '${notif.type}', ${user_id})">OK</button>
+                    `;
                     break;
-                case 'transfer':
-                    notifText = `New transfer notification from ${notif.sender_name}`;
+                case 'Participant_Request':
+                    console.log(notif.participant_id);
+                    notifText = `${notif.participant_name} wants to participate in your announcement: "${notif.annonce_title}"`;
+                    actions = `
+                        <button onclick="handleNotificationAction(${notif.id}, 'Participant_Respond', null, 'accept', ${user_id}, ${notif.annonce_id}, ${notif.participant_id})">Accept</button>
+                        <button onclick="handleNotificationAction(${notif.id}, 'Participant_Respond', null, 'reject', ${user_id}, ${notif.annonce_id}, ${notif.participant_id})">Reject</button>
+                    `;
                     break;
                 default:
                     notifText = 'New notification';
+                    actions = `<button onclick="markAsViewed(${notif.id}, '${notif.type}', '${notif.type}', ${user_id})">OK</button>`;
             }
 
             notifItem.innerHTML = `
                 <span>${notifText}</span>
                 <div class="notification-actions">
-                    <button onclick="handleNotificationAction(${notif.id}, '${notif.type}', 'accept', ${user_id}, ${notif.annonce_id || null}, ${notif.participant_id || null})">Accept</button>
-                    <button onclick="handleNotificationAction(${notif.id}, '${notif.type}', 'reject', ${user_id}, ${notif.annonce_id || null}, ${notif.participant_id || null})">Reject</button>
+                    ${actions}
                 </div>
             `;
-
             notifList.appendChild(notifItem);
         });
 
         notifContainer.appendChild(notifList);
     }
 
-    function handleNotificationAction(id, type, action, user_id, annonce_id = null, participant_id = null) {
+    function markAsViewed(notification_id, type, type2 = null , user_id) {
+        const requestData = {
+            action: "Notification",
+            notification_id: notification_id,
+            notification_type: type,
+            user_id: user_id
+        };
+        if (type2) requestData.notification_type_2 = type2;
+
+        postData(apiUrl, requestData)
+            .then(response => {
+                if (response.success) {
+                    reloadNotifications(user_id);
+                    alert('Notification marked as viewed');
+                } else {
+                    console.error('Failed to mark notification as viewed', response);
+                }
+            })
+            .catch(error => {
+                console.error('Error marking notification as viewed', error);
+            });
+    }
+
+    function handleNotificationAction(id, type, type2 = null ,action, user_id, annonce_id = null, participant_id = null) {
+        console.log(participant_id);
         const requestData = {
             action: "Notification",
             notification_id: id,
             notification_type: type,
             notification_action: action,
-            user_id: user_id
+            user_id: user_id,
         };
-
-        if (annonce_id) {
-            requestData.annonce_id = annonce_id;
-        }
-        if (participant_id) {
-            requestData.participant_id = participant_id;
-        }
+        
+        if (annonce_id) requestData.annonce_id = annonce_id;
+        if (type2) requestData.notification_type_2 = type2;
+        if (participant_id) requestData.participant_id = participant_id;
 
         postData(apiUrl, requestData)
             .then(response => {
@@ -201,9 +275,9 @@ require_once "./component/head.php";
             });
     }
 
-    
 
-    async function displayData(user_id, items, containerId, type, clear = false) {
+
+    async function displayData(user_id, items, containerId, type, clear = false, redirection) {
         const container = document.getElementById(containerId);
         if (clear) container.innerHTML = ''; 
         if (items && items.length > 0) {
@@ -255,16 +329,18 @@ require_once "./component/head.php";
             autre.style.alignItems = 'flex';
             autre.style.justifyContent = 'center';
             autre.style.display = 'flex';
-            autre.style.width = '15em'
+            autre.style.width = '15em';
+            autre.style.cursor = 'pointer';
             
-            const contentBouton = document.createElement('button');
-            contentBouton.setAttribute('onclick', `loadMore('${type}', '${containerId}')`);
+            autre.addEventListener('click', () => {
+                window.location.href = redirection;
+            });
 
             const icon = document.createElement('ion-icon');
             icon.setAttribute('name', 'add-circle-outline');
-            contentBouton.appendChild(icon);
+            autre.appendChild(icon);
 
-            autre.appendChild(contentBouton);
+            
             container.appendChild(autre);
         } else if (clear) {
             container.innerHTML = '<li>No data available</li>';

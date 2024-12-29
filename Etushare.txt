@@ -27,17 +27,25 @@ ensuite  tu recuper le lien external tu copie et sa met ta page a jour
 
 
 Not finish :
+avis
+chat
+token
+jolie
+eneleve display de base
+gestion d'erreur a finir
+
+
 
 1-//Notif
 2-//transfert 
 3-chat
-4-recherche
+4-//recherche
 5-//real-time notifications
 6-//affichage des points profil
 7-securisation
-8-optimisation code avec gestion erreur et format retour et echo json
-9-user detail annonce clicable
-10-anonce detail afficher couleur distincte si on participe
+8-//optimisation code avec gestion erreur et format retour et echo json
+9-//user detail annonce clicable
+10-//anonce detail afficher couleur distincte si on participe
 
 
 a metre en place  

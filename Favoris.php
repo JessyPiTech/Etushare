@@ -56,6 +56,7 @@ miniHeader button.active {
 
 <script src="./static/js/postData.js"></script>
 <script src="./static/js/likeParticipation.js"></script>
+<script src="./static/js/displayAnnonces.js"></script>
 
 <script>
     const user_id = '<?php echo $_SESSION['user_id'] ?>';
@@ -122,20 +123,36 @@ miniHeader button.active {
                 case 'Like':
                     items = data.likeAnnonces || [];
                     totalPages = Math.ceil((data.totalCount || 0) / limit) || 1;
+                    displayAnnonces(user_id, items, 'like-annonces', {
+                        displayType: 'grid',
+                        imageSize: 'big'
+                    });
                     break;
                 case 'Participant':
                     items = data.participantAnnonces || [];
                     totalPages = Math.ceil((data.totalCount || 0) / limit) || 1;
+                    displayAnnonces(user_id, items, 'participant-annonces', {
+                        displayType: 'grid',
+                        imageSize: 'big'
+                    });
                     break;
                 case 'MesAnnonces':
                     items = data.mesAnnonces || [];
                     totalPages = Math.ceil((data.totalCount || 0) / limit) || 1;
+                    displayAnnonces(user_id, items, 'mesannonces-annonces', {
+                        displayType: 'grid',
+                        imageSize: 'big'
+                    });
                     break;
                 default:
+                    displayAnnonces(user_id, items, 'like-annonces', {
+                        displayType: 'grid',
+                        imageSize: 'big'
+                    });
                     items = [];
             }
-
-            displayData(user_id,items, containerId, type, true);
+            
+            
             updatePagination();
 
             if (items.length === 0) {

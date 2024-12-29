@@ -1,43 +1,23 @@
 <?php
 session_start();
-
+require_once __DIR__ . "/../utilitaire/image.php";
+require_once __DIR__ . "/../utilitaire/erreur.php";
 require_once __DIR__ . "/../config/coDB.php";
 require_once __DIR__ . "/../class/User.php"; 
 require_once __DIR__ . "/../class/Friend.php";  
 require_once __DIR__ . "/../class/Annonce.php";  
 require_once __DIR__ . "/../class/Auth.php";
 require_once __DIR__ . "/../class/Notification.php";
-require_once __DIR__ . "/../class/Comment.php";
-
+require_once __DIR__ . "/../class/Avis.php";
+require_once __DIR__ . "/../class/Categorie.php";
+require_once __DIR__ . "/../class/KeyWord.php";
 require_once __DIR__ . "/../class/Like.php";
+require_once __DIR__ . "/../class/Message.php";
 require_once __DIR__ . "/../class/Participant.php";
 require_once __DIR__ . "/../class/Transfere.php";
 
-// Uniformisation erreur
-const ERROR_MESSAGES = [
-    'INVALID_METHOD' => 'Méthode non autorisée',
-    'INVALID_JSON' => 'JSON invalide',
-    'UNSUPPORTED_CONTENT_TYPE' => 'Content-type non supporté',
-    'NO_ACTION' => 'Action non spécifiée',
-    'INVALID_ACTION' => 'Action invalide',
-    'INVALID_PARAM' => 'Paramètre invalide',
-    'UPLOAD_FAILED' => 'Erreur lors de l\'upload du fichier',
-    'FILE_TOO_LARGE' => 'Le fichier est trop grand',
-    'INVALID_FILE_FORMAT' => 'Format de fichier non supporté',
-    'INVALID_TRANSFER_ACTION' => 'Action de transfert invalide',
-    'MISSING_PARAMETERS' => 'Paramètres manquants',
-    'INVALID_NOTIFICATION_TYPE' => 'Type de notification invalide',
-    'FRIEND_REQUEST_FAILED' => 'Échec de la création de la demande d\'ami',
-    'PARTICIPANT_REQUEST_FAILED' => 'Échec de l\'ajout du participant'
-];
 
-// Gestion centralier des message d'erreur
-function sendErrorResponse($code, $message) {
-    http_response_code($code);
-    header('Content-Type: application/json');
-    echo json_encode(['error' => $message]);
-    exit;
-}
+
 
 // Analyser les données d'entrée
 function parseInput() {
@@ -64,41 +44,15 @@ function parseInput() {
     return $input;
 }
 
-// Gestion de l'upload d'image
-function handle_image_upload($file, $target_dir = "../upload/") {
-    if (filesize($file['tmp_name']) > 1000000) {
-        sendErrorResponse(400, ERROR_MESSAGES['FILE_TOO_LARGE']);
-    }
 
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-        sendErrorResponse(500, ERROR_MESSAGES['UPLOAD_FAILED']);
-    }
 
-    $allowed_types = ["jpg", "png", "jpeg", "gif"];
-    $imageFileType = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    if (!in_array($imageFileType, $allowed_types)) {
-        sendErrorResponse(400, ERROR_MESSAGES['INVALID_FILE_FORMAT']);
-    }
-
-    $unique_name = uniqid() . '.' . $imageFileType;
-    $target_file = $target_dir . $unique_name;
-    if (move_uploaded_file($file['tmp_name'], $target_file)) {
-        return substr($target_file, 1);
-    } else {
-        sendErrorResponse(500, "Erreur inconnue lors du déplacement du fichier");
-    }
-
-    return false;
-}
 
 // Gestion requete etap par etape
 function handleRequest() {
     if ($_SERVER["REQUEST_METHOD"] !== "POST") {
         sendErrorResponse(405, ERROR_MESSAGES['INVALID_METHOD']);
     }
-    
     $conn = coDB();
-    
     try {
         $input = parseInput();
         process_post_requests($conn, $input);
@@ -118,11 +72,13 @@ function process_post_requests($conn, $input) {
         "Friend" => 'handle_friend_action',
         "Annonce" => 'handle_annonce_action',
         "Dashboard" => 'handle_dashboard_action',
-        "Recherche" => 'handle_recherche_action',
+        "Search" => 'handle_search_action',
         "Notification" => 'handle_notification_action',
-        "Comment" => 'handle_comment_action',
+        "Avis" => 'handle_avis_action',
         "Like" => 'handle_annonce_like_action',
         "Participant" => 'handle_annonce_participant_action',
+        "Categories" => 'handle_categories_action',
+        "Message" => 'handle_message_action',
         "Transfer" => 'handle_transfer_action'
     ];
 
@@ -134,6 +90,30 @@ function process_post_requests($conn, $input) {
         sendErrorResponse(400, ERROR_MESSAGES['INVALID_ACTION']);
     }
 }
+
+
+//--------------------branche----------------------------//
+
+function handle_message_action($conn, $part, $input) {
+    $message = new Message($conn);
+    switch ($part[1]) {
+        case "Send":
+            $message->create($input);
+            break;
+        case "Get":
+            try {
+                $messages = $message->getMessages($input['user_id_1'], $input['user_id_2']);
+                echo json_encode(['success' => true, 'messages' => $messages]);
+            } catch (Exception $e) {
+                sendErrorResponse(500, $e->getMessage());
+            }
+            break;
+        default:
+            sendErrorResponse(400, ERROR_MESSAGES['INVALID_ACTION']);
+    }
+    exit;
+}
+
 
 function handle_user_action($conn, $part, $input) {
     $user = new User($conn);
@@ -166,13 +146,14 @@ function handle_user_action($conn, $part, $input) {
 
         case "Detail":
             $annonce = new Annonce($conn);
+            /* a changer  */
             $friend = new Friend($conn);
     
             try {
                 $userDetails = $user->getUserDetails($input['user_id']);
                 $userAnnonces = $annonce->getUserAnnonce($conn, $input['user_id'], $input);
                 $friendStatus = $friend->getFriendStatus($input['current_user_id'], $input['user_id']);
-    
+               
                 echo json_encode([
                     'user' => $userDetails,
                     'annonces' => $userAnnonces,
@@ -209,8 +190,8 @@ function handle_auth_action($conn, $part, $input) {
 function handle_friend_action($conn, $part, $input) {
     $friend = new Friend($conn);
     switch ($part[1]) {
-        case "Create":
-            $friend->create($input);
+        case "Request":
+            $friend->createRequest($input);
             break;
         case "Delete":
             $friend->delete('user_friend', 'user_friend_id', $input);
@@ -221,12 +202,43 @@ function handle_friend_action($conn, $part, $input) {
         case "Respond":
             $friend->createRespond($input);
             break;
+        case "Get":
+            /* a change */
+            $friend->getFriend($input['current_user_id'], $input['user_id']);
+            break;
+        case "Check":
+            $friendStatus = $friend->getFriendStatus($input['current_user_id'], $input['user_id']);
+            echo json_encode([
+                'friendStatus' => $friendStatus
+            ]);
+            break;
         default:
             sendErrorResponse(400, ERROR_MESSAGES['INVALID_ACTION']);
     }
     exit;
 }
 
+function handle_annonce_participant_action($conn, $part, $input) {
+    $Participant = new Participant($conn);
+    switch ($part[1]) {
+        case "Request":
+            $Participant->createRequest($input);
+            break;
+        case "Delete":
+            $Participant->delete('annonce_participant', 'participant_id', $input, true);
+            break;
+        case "Count":
+            $count = $Participant->countItems('annonce_participant', $input['user_id']);
+            echo json_encode(['count' => $count]);
+            break;
+        case "Respond":
+            $Participant->creatRespond($conn, $input);
+            break;
+        default:
+            sendErrorResponse(400, ERROR_MESSAGES['INVALID_ACTION']);
+    }
+    exit;
+}
 
 
 function handle_annonce_action($conn, $part, $input) {
@@ -289,7 +301,7 @@ function handle_dashboard_action($conn, $part, $input) {
                 $categoryAnnonces = $annonce->getAnnonces($conn, 'category', $input, 5, 0);
                 $likeAnnonces = $annonce->getAnnonces($conn, 'like', $input, 5, 0);
                 $participantAnnonces = $annonce->getAnnonces($conn, 'participant', $input, 5, 0);
-                $notifications =  $notif->fetchUserNotifications($conn, $input['user_id']);
+                $notifications =  $notif->getNotifications($conn, $input['user_id']);
 
                 echo json_encode([
                     'allAnnonces' => $allAnnonces,
@@ -361,84 +373,69 @@ function handle_dashboard_action($conn, $part, $input) {
 
 
 
-
-
-function handle_recherche_action($conn, $part, $input) {
-    $annonce = new Annonce($conn);
+function handle_search_action($conn, $part, $input) {
+    $keyWord = new KeyWord($conn);
+    
     switch ($part[1]) {
-        case "Load":
-            try {
-                $allAnnonces = $annonce->getAnnonces($conn, 'all', $input, 5, 0);
-                $categoryAnnonces = $annonce->getAnnonces($conn, 'category', $input, 5, 0);
-                $likeAnnonces = $annonce->getAnnonces($conn, 'like', $input, 5, 0);
-                $participantAnnonces = $annonce->getAnnonces($conn, 'participant', $input, 5, 0);
-
-                echo json_encode([
-                    'allAnnonces' => $allAnnonces,
-                    'categoryAnnonces' => $categoryAnnonces,
-                    'likeAnnonces' => $likeAnnonces,
-                    'participantAnnonces' => $participantAnnonces,
-                ]);
-            } catch (Exception $e) {
-                sendErrorResponse(500, $e->getMessage());
+        case "Annonces":
+            if (!isset($input['search'])) {
+                sendErrorResponse(400, 'Search term is required');
             }
-            break;
-
-        case "More":
-            switch ($part[2]) {
-                case "Annonce":
-                    try {
-                        switch ($part[3]) {
-                            case "Annonce":
-                                $allAnnonces = $annonce->getAnnonces($conn, 'all', $input, 7, 5);
-                                echo json_encode(['allAnnonces' => $allAnnonces]);
-                                break;
-                            case "Like":
-                                $likeAnnonces = $annonce->getAnnonces($conn, 'like', $input, 7, 5);
-                                echo json_encode(['likeAnnonces' => $likeAnnonces]);
-                                break;
-                            case "Category":
-                                $categoryAnnonces = $annonce->getAnnonces($conn, 'category', $input, 7, 5);
-                                echo json_encode(['categoryAnnonces' => $categoryAnnonces]);
-                                break;
-                            case "Participant":
-                                $participantAnnonces = $annonce->getAnnonces($conn, 'participant', $input, 7, 5);
-                                echo json_encode(['participantAnnonces' => $participantAnnonces]);
-                                break;
-                            default:
-                                sendErrorResponse(400, ERROR_MESSAGES['INVALID_ACTION']);
-                        }
-                    } catch (Exception $e) {
-                        sendErrorResponse(500, $e->getMessage());
-                    }
-                    break;
-
-                default:
-                    sendErrorResponse(400, ERROR_MESSAGES['INVALID_ACTION']);
+            
+            $limit = isset($input['limit']) ? (int)$input['limit'] : 10;
+            $offset = isset($input['offset']) ? (int)$input['offset'] : 0;
+            
+            if (isset($input['category_id']) && $input['category_id'] != '0') {
+                $keyWord->getKeyWordByCategory(
+                    $input['search'],
+                    $input['category_id'],
+                    $limit,
+                    $offset
+                );
+            } else {
+                $keyWord->getKeyWord(
+                    $input['search'],
+                    $limit,
+                    $offset
+                );
             }
-            break;
-
+            exit;
+            
         default:
             sendErrorResponse(400, ERROR_MESSAGES['INVALID_ACTION']);
     }
 }
 
-function handle_comment_action($conn, $part, $input) {
-    $comment = new Comment($conn);
+
+function handle_avis_action($conn, $part, $input) {
+    $avis = new Avis($conn);
     switch ($part[1]) {
         case "Create":
-            $comment->create($input);
+            $avis->create($input);
             break;
         case "Delete":
-            $comment->delete('commantaire', 'commantaire_id', $input);
+            $avis->delete('user_avis', 'user_avis_id', $input);
             break;
         case "Update":
-            $comment->update($input);
+            $avis->update($input);
             break;
         default:
             sendErrorResponse(400, ERROR_MESSAGES['INVALID_ACTION']);
     }
     exit;
+}
+
+function handle_categories_action($conn, $part, $input) {
+    $category = new Category($conn);
+    
+    switch ($part[1]) {
+        case "Get":
+            $category->get();
+            exit;
+            
+        default:
+            sendErrorResponse(400, ERROR_MESSAGES['INVALID_ACTION']);
+    }
 }
 
 
@@ -494,44 +491,24 @@ function handle_transfer_action($conn, $part, $input) {
     exit;
 }
 
-function handle_annonce_participant_action($conn, $part, $input) {
-    $Participant = new Participant($conn);
-    switch ($part[1]) {
-        case "Create":
-            $Participant->create($input);
-            break;
-        case "Delete":
-            $Participant->delete('annonce_participant', 'participant_id', $input, true);
-            break;
-        case "Count":
-            $count = $Participant->countItems('annonce_participant', $input['user_id']);
-            echo json_encode(['count' => $count]);
-            break;
-        case "Respond":
-            $Participant->creatRespond($conn, $input);
-            break;
-        default:
-            sendErrorResponse(400, ERROR_MESSAGES['INVALID_ACTION']);
-    }
-    exit;
-}
+
 function handle_notification_action($conn, $part , $input) {
-    if (!isset($input['notification_id'], $input['notification_type'], $input['notification_action'])) {
+    if (!isset($input['notification_id'], $input['notification_type'])) {
         sendErrorResponse(400, ERROR_MESSAGES['MISSING_PARAMETERS']);
     }
     $notif = new Notification($conn);
+
     $part = explode('_', $input['notification_type']);
-    switch ($part[0]) {
-        case 'Friend':
+   
+    switch ($input['notification_type']) {
+        case 'Friend_Respond':
             handle_friend_action($conn, $part,$input);
             break;
-
-        case 'like':
-            $notif->handleLikeNotification($conn, $input);
-            break;
-
-        case 'Participant':
+        case 'Participant_Respond':
             handle_annonce_participant_action($conn, $part, $input);
+            break;
+        case 'Validation':
+            $notif->markAsViewed($conn,$input);
             break;
 
         default:

@@ -14,10 +14,9 @@ require_once "./component/head.php";
                 <input type="text" id="annonce_title" name="annonce_title" required>
             </div>
             <div class="form-group">
-                <label for="annonce_participant_number">Nombre de particpent</label>
+                <label for="annonce_participant_number">Nombre de participant</label>
                 <input type="number" id="annonce_participant_number" name="annonce_participant_number" step="1" required>
             </div>
-            
 
             <div class="form-group">
                 <label for="annonce_description">Description</label>
@@ -36,17 +35,16 @@ require_once "./component/head.php";
                     <img id="image-preview" src="#" alt="Image preview" style="max-width: 300px; max-height: 300px;">
                 </div>
             </div>
-
+            
             <div class="form-group">
                 <label for="category_id">Catégorie</label>
                 <select id="category_id" name="category_id" required>
                     <option value="">Sélectionnez une catégorie</option>
-                    <option value="1">Technologie</option>
-                    <option value="2">Meubles</option>
-                    <option value="3">Vêtements</option>
-                    <option value="4">Autres</option>
+                    <!-- Categories will be loaded dynamically -->
                 </select>
             </div>
+
+            
 
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Créer l'annonce</button>
@@ -66,7 +64,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const imageInput = document.getElementById('annonce_image');
     const imagePreviewContainer = document.getElementById('image-preview-container');
     const imagePreview = document.getElementById('image-preview');
-
+    const categorySelect = document.getElementById('category_id');
+    
     imageInput.addEventListener('change', function(event) {
         const file = event.target.files[0];
         if (file) {
@@ -78,6 +77,29 @@ document.addEventListener('DOMContentLoaded', function() {
             reader.readAsDataURL(file);
         }
     });
+
+    // Charger les catégories depuis l'API
+    async function loadCategories() {
+        try {
+            const requestData = {
+                action: 'Categories_Get'
+            };
+            const data = await postData(apiUrl, requestData);
+
+            // Ajouter les options des catégories au select
+            data.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.category_id;
+                option.textContent = category.category_name;
+                categorySelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Erreur de récupération des catégories :', error);
+        }
+    }
+
+    // Initialiser la page
+    loadCategories();
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -108,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log("API Response:", jsonResponse);
 
             if (jsonResponse.success) {
-                messageContainer.innerHTML = `
+                messageContainer.innerHTML = ` 
                     <div class="alert alert-success">
                         Annonce créée avec succès ! <a href="./">Voir le tableau de bord</a>
                     </div>
@@ -123,7 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
             }
         } catch (error) {
-            console.error("Error:", error);
+            console.error("Erreur:", error);
             messageContainer.innerHTML = `
                 <div class="alert alert-danger">
                     Une erreur s'est produite : ${error.message}
@@ -135,4 +157,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <?php require_once "./component/foot.php"; ?>
-

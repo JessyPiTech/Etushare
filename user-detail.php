@@ -28,6 +28,8 @@ if (!$user_id) die("Invalid user ID");
 
 <script src="./static/js/postData.js"></script>
 <script src="./static/js/likeParticipation.js"></script>
+<script src="./static/js/displayAnnonces.js"></script>
+
 <script>
     const user_id = '<?php echo $_SESSION['user_id'] ?>';
     const defaultImage = './upload/default.png';
@@ -77,7 +79,10 @@ if (!$user_id) die("Invalid user ID");
                 actionsDiv.appendChild(messageBtn);
             }
 
-            displayData(user_id, annonces, 'user-annonces', 'annonce', true);
+            displayAnnonces(user_id, annonces, 'user-annonces', {
+                displayType: 'grid',
+                imageSize: 'normal'
+            });
             
         } catch (error) {
             console.error('Failed to load user details:', error);
@@ -143,10 +148,9 @@ if (!$user_id) die("Invalid user ID");
 
     function sendFriendRequest(user_id, targetUserId) {
         const requestData = {
-            action: "Notification_Handle",
-            notification_type: 'friend_request',
-            sender_id: user_id,
-            receiver_id: targetUserId
+            action: "Friend_Request",
+            user_id_1: user_id,
+            user_id_2: targetUserId
         };
 
         postData(apiUrl, requestData)
